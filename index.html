@@ -4,13 +4,178 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>HU Quiz</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, "Noto Sans KR", sans-serif;
+      background: #f4f6f9;
+      text-align: center;
+    }
+
+    .screen {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 25px;
+    }
+
+    h1 {
+      font-size: 42px;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      color: #666;
+      margin-bottom: 35px;
+    }
+
+    input {
+      width: 100%;
+      max-width: 400px;
+      margin: 0 auto 15px;
+      padding: 18px;
+      font-size: 20px;
+      border: 1px solid #ccc;
+      border-radius: 12px;
+    }
+
+    .join-button {
+      width: 100%;
+      max-width: 400px;
+      margin: 0 auto;
+      padding: 18px;
+      font-size: 20px;
+      font-weight: bold;
+      border: none;
+      border-radius: 12px;
+      background: #222;
+      color: white;
+      cursor: pointer;
+    }
+
+    #quizScreen {
+      display: none;
+      min-height: 100vh;
+    }
+
+    .question {
+      padding: 25px 15px;
+      font-size: 25px;
+      font-weight: bold;
+      background: white;
+    }
+
+    .answers {
+      display: flex;
+      height: calc(100vh - 110px);
+    }
+
+    .answer {
+      width: 50%;
+      border: none;
+      font-size: 32px;
+      font-weight: bold;
+      color: white;
+      cursor: pointer;
+    }
+
+    .answer1 {
+      background: #e74c3c;
+    }
+
+    .answer2 {
+      background: #3498db;
+    }
+
+    .selected {
+      outline: 8px solid #222;
+      outline-offset: -8px;
+    }
+  </style>
 </head>
 
 <body>
-  <h1>HU Quiz</h1>
-  <h2>탕수육을 먹을 때 당신의 선택은?</h2>
 
-  <button>① 부먹</button>
-  <button>② 찍먹</button>
+  <!-- 입장 화면 -->
+  <div id="joinScreen" class="screen">
+    <h1>HU Quiz</h1>
+    <div class="subtitle">교육용 참여형 퀴즈</div>
+
+    <input
+      id="nickname"
+      type="text"
+      placeholder="닉네임을 입력하세요"
+    >
+
+    <button class="join-button" onclick="joinQuiz()">
+      입장하기
+    </button>
+  </div>
+
+
+  <!-- 퀴즈 화면 -->
+  <div id="quizScreen">
+
+    <div class="question">
+      탕수육을 먹을 때 당신의 선택은?
+    </div>
+
+    <div class="answers">
+
+      <button
+        class="answer answer1"
+        onclick="selectAnswer(this, '부먹')">
+        ①<br>부먹
+      </button>
+
+      <button
+        class="answer answer2"
+        onclick="selectAnswer(this, '찍먹')">
+        ②<br>찍먹
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <script>
+
+    function joinQuiz() {
+
+      const nickname =
+        document.getElementById("nickname").value.trim();
+
+      if (nickname === "") {
+        alert("닉네임을 입력해주세요.");
+        return;
+      }
+
+      document.getElementById("joinScreen").style.display = "none";
+      document.getElementById("quizScreen").style.display = "block";
+    }
+
+
+    function selectAnswer(button, answer) {
+
+      document
+        .querySelectorAll(".answer")
+        .forEach(btn => btn.classList.remove("selected"));
+
+      button.classList.add("selected");
+
+      setTimeout(function () {
+        alert(answer + "을 선택했습니다!");
+      }, 100);
+    }
+
+  </script>
+
 </body>
 </html>
