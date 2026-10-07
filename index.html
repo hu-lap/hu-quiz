@@ -596,7 +596,7 @@ function showScreen(id) {
    입장
 ------------------------- */
 
-window.joinQuiz = function() {
+window.joinQuiz = async function() {
 
   nickname =
     document.getElementById("nickname")
@@ -612,18 +612,44 @@ window.joinQuiz = function() {
   }
 
 
-  joined = true;
+  try {
+
+    // Firebase에 참가자 등록
+    const newParticipantRef =
+      push(
+        ref(database, "participants")
+      );
 
 
-  document.getElementById("waitingName")
-    .textContent =
-    nickname + "님";
+    await set(
+      newParticipantRef,
+      {
+        nickname: nickname,
+        joinedAt: Date.now()
+      }
+    );
 
 
-  showScreen("waitingScreen");
+    joined = true;
+
+
+    document.getElementById("waitingName")
+      .textContent =
+      nickname + "님";
+
+
+    showScreen("waitingScreen");
+
+
+  } catch(error) {
+
+    alert("입장에 실패했습니다. 다시 시도해주세요.");
+
+    console.error(error);
+
+  }
 
 };
-
 
 
 /* ------------------------
