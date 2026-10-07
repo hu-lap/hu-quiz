@@ -1,394 +1,1180 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HU Quiz</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HU Quiz</title>
 
-  <style>
-    * { box-sizing: border-box; }
+<style>
+* { box-sizing: border-box; }
 
-    body {
-      margin: 0;
-      font-family: Arial, "Noto Sans KR", sans-serif;
-      background: #f4f6f9;
-      text-align: center;
-    }
+body {
+  margin: 0;
+  font-family: Arial, "Noto Sans KR", sans-serif;
+  background: #f4f6f9;
+  color: #222;
+}
 
-    .screen {
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      padding: 25px;
-    }
+.screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+}
 
-    h1 {
-      font-size: 42px;
-      margin: 0 0 10px;
-    }
+#waitingScreen,
+#quizScreen,
+#submittedScreen,
+#resultScreen,
+#finishedScreen {
+  display: none;
+}
 
-    .subtitle {
-      color: #666;
-      margin-bottom: 35px;
-    }
+h1 {
+  font-size: 42px;
+  margin: 0 0 8px;
+}
 
-    input {
-      width: 100%;
-      max-width: 400px;
-      margin: 0 auto 15px;
-      padding: 18px;
-      font-size: 20px;
-      border: 1px solid #ccc;
-      border-radius: 12px;
-    }
+.subtitle {
+  color: #666;
+  margin-bottom: 35px;
+}
 
-    .main-button {
-      width: 100%;
-      max-width: 400px;
-      margin: 0 auto;
-      padding: 18px;
-      font-size: 20px;
-      font-weight: bold;
-      border: none;
-      border-radius: 12px;
-      background: #222;
-      color: white;
-      cursor: pointer;
-    }
+input {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto 15px;
+  padding: 18px;
+  font-size: 20px;
+  border: 1px solid #ccc;
+  border-radius: 12px;
+}
 
-    #waitingScreen,
-    #quizScreen,
-    #submittedScreen {
-      display: none;
-    }
+.main-button {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 18px;
+  border: none;
+  border-radius: 12px;
+  background: #222;
+  color: white;
+  font-size: 20px;
+  font-weight: bold;
+  cursor: pointer;
+}
 
-    .waiting-box {
-      background: white;
-      max-width: 500px;
-      margin: 0 auto;
-      padding: 40px 25px;
-      border-radius: 20px;
-    }
+.card {
+  width: 100%;
+  max-width: 520px;
+  margin: auto;
+  padding: 35px 22px;
+  background: white;
+  border-radius: 20px;
+}
 
-    .waiting-name {
-      font-size: 24px;
-      font-weight: bold;
-      margin-bottom: 25px;
-    }
+.big-name {
+  font-size: 27px;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
 
-    .waiting-message {
-      font-size: 20px;
-      color: #555;
-      line-height: 1.6;
-    }
+.message {
+  color: #666;
+  font-size: 19px;
+  line-height: 1.6;
+}
 
-    #quizScreen {
-      min-height: 100vh;
-      background: #f4f6f9;
-    }
 
-    .question-number {
-      padding-top: 25px;
-      font-size: 18px;
-      color: #777;
-    }
+/* 문제 화면 */
 
-    .question {
-      padding: 15px 20px 25px;
-      font-size: 28px;
-      font-weight: bold;
-    }
+#quizScreen {
+  min-height: 100vh;
+  padding: 20px;
+}
 
-    .answers {
-      display: flex;
-      min-height: calc(100vh - 130px);
-    }
+.question-number {
+  text-align: center;
+  color: #777;
+  font-size: 17px;
+  margin-top: 8px;
+}
 
-    .answer {
-      width: 50%;
-      border: none;
-      font-size: 32px;
-      font-weight: bold;
-      color: white;
-      cursor: pointer;
-    }
+.question {
+  text-align: center;
+  font-size: 27px;
+  font-weight: bold;
+  padding: 18px 5px 25px;
+}
 
-    .answer1 { background: #e74c3c; }
-    .answer2 { background: #3498db; }
+.answers {
+  max-width: 650px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
 
-    .answer:disabled {
-      cursor: default;
-      opacity: 0.6;
-    }
+.answer {
+  min-height: 125px;
+  padding: 18px 10px;
+  border: none;
+  border-radius: 16px;
+  color: white;
+  font-size: 23px;
+  font-weight: bold;
+  cursor: pointer;
+}
 
-    .answer.selected {
-      outline: 8px solid #222;
-      outline-offset: -8px;
-      opacity: 1;
-    }
+.color1 { background: #e74c3c; }
+.color2 { background: #3498db; }
+.color3 { background: #f39c12; }
+.color4 { background: #27ae60; }
 
-    .submitted-box {
-      background: white;
-      max-width: 500px;
-      margin: 0 auto;
-      padding: 45px 25px;
-      border-radius: 20px;
-    }
+.answer.selected {
+  outline: 7px solid #222;
+  outline-offset: -7px;
+}
 
-    .check {
-      font-size: 60px;
-      margin-bottom: 15px;
-    }
+.answer.used {
+  opacity: 0.45;
+}
 
-    .submitted-title {
-      font-size: 28px;
-      font-weight: bold;
-      margin-bottom: 15px;
-    }
+.answer:disabled {
+  cursor: default;
+}
 
-    .submitted-message {
-      color: #666;
-      font-size: 18px;
-      line-height: 1.6;
-    }
-  </style>
+
+/* 순서 문제 */
+
+.order-info {
+  display: none;
+  max-width: 650px;
+  margin: 18px auto;
+  padding: 16px;
+  background: white;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.order-title {
+  color: #666;
+  margin-bottom: 8px;
+}
+
+#orderDisplay {
+  font-size: 24px;
+  font-weight: bold;
+  min-height: 30px;
+}
+
+.order-controls {
+  display: none;
+  max-width: 650px;
+  margin: 15px auto;
+  text-align: center;
+}
+
+.small-button {
+  padding: 14px 22px;
+  margin: 5px;
+  border: none;
+  border-radius: 10px;
+  font-size: 17px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.reset-button {
+  background: #ddd;
+}
+
+.submit-button {
+  background: #222;
+  color: white;
+}
+
+
+/* 결과 */
+
+.result-symbol {
+  font-size: 65px;
+  margin-bottom: 10px;
+}
+
+.result-title {
+  font-size: 29px;
+  font-weight: bold;
+  margin-bottom: 15px;
+}
+
+.my-answer {
+  font-size: 19px;
+  margin: 18px 0;
+}
+
+.correct-answer {
+  font-size: 20px;
+  font-weight: bold;
+  margin: 18px 0;
+}
+
+.explanation {
+  color: #555;
+  line-height: 1.6;
+  margin-top: 20px;
+}
+</style>
 </head>
+
 
 <body>
 
-  <!-- 닉네임 입력 -->
-  <div id="joinScreen" class="screen">
-    <h1>HU Quiz</h1>
-    <div class="subtitle">교육용 참여형 퀴즈</div>
+<!-- 입장 -->
+<div id="joinScreen" class="screen">
 
-    <input
-      id="nickname"
-      type="text"
-      placeholder="닉네임을 입력하세요"
-    >
+  <h1>HU Quiz</h1>
 
-    <button class="main-button" onclick="joinQuiz()">
-      입장하기
+  <div class="subtitle">
+    교육용 참여형 퀴즈
+  </div>
+
+  <input
+    id="nickname"
+    type="text"
+    placeholder="닉네임을 입력하세요">
+
+  <button
+    class="main-button"
+    onclick="joinQuiz()">
+    입장하기
+  </button>
+
+</div>
+
+
+<!-- 대기 -->
+<div id="waitingScreen" class="screen">
+
+  <div class="card">
+
+    <div
+      id="waitingName"
+      class="big-name">
+    </div>
+
+    <div class="message">
+      입장이 완료되었습니다.<br><br>
+      강사가 퀴즈를 시작할 때까지<br>
+      잠시 기다려 주세요.
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- 문제 -->
+<div id="quizScreen">
+
+  <div
+    id="questionNumber"
+    class="question-number">
+  </div>
+
+  <div
+    id="questionText"
+    class="question">
+  </div>
+
+  <div
+    id="answers"
+    class="answers">
+  </div>
+
+
+  <div
+    id="orderInfo"
+    class="order-info">
+
+    <div class="order-title">
+      내가 선택한 순서
+    </div>
+
+    <div id="orderDisplay">
+      아직 선택하지 않았습니다.
+    </div>
+
+  </div>
+
+
+  <div
+    id="orderControls"
+    class="order-controls">
+
+    <button
+      class="small-button reset-button"
+      onclick="resetOrder()">
+      다시 선택
     </button>
+
+    <button
+      class="small-button submit-button"
+      onclick="submitOrder()">
+      답변 제출
+    </button>
+
   </div>
 
-
-  <!-- 강사 시작 대기 -->
-  <div id="waitingScreen" class="screen">
-    <div class="waiting-box">
-
-      <div id="waitingName" class="waiting-name"></div>
-
-      <div class="waiting-message">
-        입장이 완료되었습니다.<br><br>
-        강사가 퀴즈를 시작할 때까지<br>
-        잠시 기다려 주세요.
-      </div>
-
-    </div>
-  </div>
+</div>
 
 
-  <!-- 문제 화면 -->
-  <div id="quizScreen">
+<!-- 제출 완료 -->
+<div id="submittedScreen" class="screen">
 
-    <div class="question-number">
-      문제 1
+  <div class="card">
+
+    <div class="result-symbol">✓</div>
+
+    <div class="result-title">
+      답변 제출 완료
     </div>
 
-    <div class="question">
-      탕수육을 먹을 때 당신의 선택은?
-    </div>
-
-    <div class="answers">
-
-      <button
-        class="answer answer1"
-        onclick="selectAnswer(this, '부먹')"
-      >
-        ①<br>부먹
-      </button>
-
-      <button
-        class="answer answer2"
-        onclick="selectAnswer(this, '찍먹')"
-      >
-        ②<br>찍먹
-      </button>
-
+    <div class="message">
+      답변이 제출되었습니다.<br>
+      강사의 정답 공개를 기다려 주세요.
     </div>
 
   </div>
 
+</div>
 
-  <!-- 답변 제출 후 -->
-  <div id="submittedScreen" class="screen">
 
-    <div class="submitted-box">
+<!-- 정답 결과 -->
+<div id="resultScreen" class="screen">
 
-      <div class="check">✓</div>
+  <div class="card">
 
-      <div class="submitted-title">
-        답변 제출 완료
-      </div>
+    <div
+      id="resultSymbol"
+      class="result-symbol">
+    </div>
 
-      <div class="submitted-message">
-        답변이 제출되었습니다.<br>
-        강사의 진행을 기다려 주세요.
-      </div>
+    <div
+      id="resultTitle"
+      class="result-title">
+    </div>
 
+    <div
+      id="myAnswer"
+      class="my-answer">
+    </div>
+
+    <div
+      id="correctAnswer"
+      class="correct-answer">
+    </div>
+
+    <div
+      id="explanation"
+      class="explanation">
+    </div>
+
+    <br>
+
+    <div class="message">
+      다음 문제를 기다려 주세요.
     </div>
 
   </div>
 
-
-  <script type="module">
-
-    import { initializeApp }
-      from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-
-    import {
-      getDatabase,
-      ref,
-      push,
-      set,
-      onValue
-    } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
+</div>
 
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyAYszYNkItL6kfrpJ5An7Z_AgDVY4nmUbg",
-      authDomain: "hu-quiz.firebaseapp.com",
-      databaseURL: "https://hu-quiz-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "hu-quiz",
-      storageBucket: "hu-quiz.firebasestorage.app",
-      messagingSenderId: "344334242719",
-      appId: "1:344334242719:web:b87436d3cba0fafd6ca3aa"
-    };
+<!-- 종료 -->
+<div id="finishedScreen" class="screen">
+
+  <div class="card">
+
+    <div class="result-symbol">🏁</div>
+
+    <div class="result-title">
+      퀴즈가 종료되었습니다.
+    </div>
+
+    <div class="message">
+      참여해 주셔서 감사합니다.
+    </div>
+
+  </div>
+
+</div>
 
 
-    const app = initializeApp(firebaseConfig);
-    const database = getDatabase(app);
 
-    let nickname = "";
-    let submitted = false;
-    let joined = false;
+<script type="module">
+
+import { initializeApp }
+from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+
+import {
+  getDatabase,
+  ref,
+  push,
+  set,
+  onValue
+}
+from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
 
 
-    function showScreen(screenId) {
+const firebaseConfig = {
 
-      document.getElementById("joinScreen").style.display = "none";
-      document.getElementById("waitingScreen").style.display = "none";
-      document.getElementById("quizScreen").style.display = "none";
-      document.getElementById("submittedScreen").style.display = "none";
+  apiKey:
+    "AIzaSyAYszYNkItL6kfrpJ5An7Z_AgDVY4nmUbg",
 
-      const target = document.getElementById(screenId);
+  authDomain:
+    "hu-quiz.firebaseapp.com",
 
-      if (screenId === "quizScreen") {
-        target.style.display = "block";
-      } else {
-        target.style.display = "flex";
-      }
+  databaseURL:
+    "https://hu-quiz-default-rtdb.asia-southeast1.firebasedatabase.app",
+
+  projectId:
+    "hu-quiz",
+
+  storageBucket:
+    "hu-quiz.firebasestorage.app",
+
+  messagingSenderId:
+    "344334242719",
+
+  appId:
+    "1:344334242719:web:b87436d3cba0fafd6ca3aa"
+
+};
+
+
+const app = initializeApp(firebaseConfig);
+const database = getDatabase(app);
+
+
+
+/* ------------------------
+   샘플 문제
+------------------------- */
+
+const questions = [
+
+  {
+    type: "choice",
+
+    text:
+      "탕수육을 먹을 때 당신의 선택은?",
+
+    options:
+      ["부먹", "찍먹"],
+
+    correct:
+      "찍먹",
+
+    explanation:
+      "샘플 문제입니다. 정답은 찍먹으로 설정했습니다."
+  },
+
+
+  {
+    type: "ox",
+
+    text:
+      "대한민국의 수도는 서울이다.",
+
+    options:
+      ["O", "X"],
+
+    correct:
+      "O",
+
+    explanation:
+      "대한민국의 수도는 서울입니다."
+  },
+
+
+  {
+    type: "choice",
+
+    text:
+      "다음 중 우리나라의 수도는 어디일까요?",
+
+    options:
+      ["서울", "부산", "대전", "제주"],
+
+    correct:
+      "서울",
+
+    explanation:
+      "대한민국의 수도는 서울입니다."
+  },
+
+
+  {
+    type: "order",
+
+    text:
+      "다음 숫자를 작은 수부터 순서대로 선택하세요.",
+
+    options:
+      ["3", "1", "4", "2"],
+
+    correct:
+      ["1", "2", "3", "4"],
+
+    explanation:
+      "작은 수부터 배열하면 1 → 2 → 3 → 4입니다."
+  }
+
+];
+
+
+
+let nickname = "";
+
+let joined = false;
+
+let currentQuestion = -1;
+
+let submittedQuestion = -1;
+
+let myAnswer = null;
+
+let orderSelection = [];
+
+
+
+/* ------------------------
+   화면 전환
+------------------------- */
+
+function showScreen(id) {
+
+  const screens = [
+    "joinScreen",
+    "waitingScreen",
+    "quizScreen",
+    "submittedScreen",
+    "resultScreen",
+    "finishedScreen"
+  ];
+
+  screens.forEach(screen => {
+
+    document.getElementById(screen)
+      .style.display = "none";
+
+  });
+
+
+  const target =
+    document.getElementById(id);
+
+
+  if (id === "quizScreen") {
+
+    target.style.display = "block";
+
+  } else {
+
+    target.style.display = "flex";
+
+  }
+
+}
+
+
+
+/* ------------------------
+   입장
+------------------------- */
+
+window.joinQuiz = function() {
+
+  nickname =
+    document.getElementById("nickname")
+      .value.trim();
+
+
+  if (!nickname) {
+
+    alert("닉네임을 입력해주세요.");
+
+    return;
+
+  }
+
+
+  joined = true;
+
+
+  document.getElementById("waitingName")
+    .textContent =
+    nickname + "님";
+
+
+  showScreen("waitingScreen");
+
+};
+
+
+
+/* ------------------------
+   문제 표시
+------------------------- */
+
+function displayQuestion(questionIndex) {
+
+  currentQuestion = questionIndex;
+
+  submittedQuestion = -1;
+
+  myAnswer = null;
+
+  orderSelection = [];
+
+
+  const q =
+    questions[currentQuestion];
+
+
+  document.getElementById("questionNumber")
+    .textContent =
+    "문제 " +
+    (currentQuestion + 1) +
+    " / " +
+    questions.length;
+
+
+  document.getElementById("questionText")
+    .textContent =
+    q.text;
+
+
+  const answers =
+    document.getElementById("answers");
+
+
+  answers.innerHTML = "";
+
+
+  document.getElementById("orderInfo")
+    .style.display = "none";
+
+  document.getElementById("orderControls")
+    .style.display = "none";
+
+
+  q.options.forEach((option, index) => {
+
+    const button =
+      document.createElement("button");
+
+
+    button.className =
+      "answer color" +
+      ((index % 4) + 1);
+
+
+    button.textContent =
+      (index + 1) +
+      ". " +
+      option;
+
+
+    if (q.type === "order") {
+
+      button.onclick = function() {
+
+        selectOrder(
+          button,
+          option
+        );
+
+      };
+
+    } else {
+
+      button.onclick = function() {
+
+        submitChoice(
+          button,
+          option
+        );
+
+      };
+
     }
 
 
-    window.joinQuiz = function () {
+    answers.appendChild(button);
 
-      nickname =
-        document.getElementById("nickname").value.trim();
-
-      if (nickname === "") {
-        alert("닉네임을 입력해주세요.");
-        return;
-      }
-
-      joined = true;
-
-      document.getElementById("waitingName").textContent =
-        nickname + "님";
-
-      showScreen("waitingScreen");
-    };
+  });
 
 
-    window.selectAnswer = async function (button, answer) {
+  if (q.type === "order") {
 
-      if (submitted) return;
+    document.getElementById("orderInfo")
+      .style.display = "block";
 
-      submitted = true;
+    document.getElementById("orderControls")
+      .style.display = "block";
 
-      document.querySelectorAll(".answer")
-        .forEach(btn => btn.disabled = true);
+    updateOrderDisplay();
 
-      button.classList.add("selected");
-
-      try {
-
-        const answersRef = ref(database, "answers");
-        const newAnswerRef = push(answersRef);
-
-        await set(newAnswerRef, {
-          nickname: nickname,
-          question: 1,
-          answer: answer,
-          submittedAt: Date.now()
-        });
-
-        setTimeout(function () {
-          showScreen("submittedScreen");
-        }, 500);
-
-      } catch (error) {
-
-        submitted = false;
-
-        document.querySelectorAll(".answer")
-          .forEach(btn => btn.disabled = false);
-
-        button.classList.remove("selected");
-
-        alert("답변 전송에 실패했습니다.");
-        console.error(error);
-      }
-    };
+  }
 
 
-    /*
-      Firebase의 quizState를 계속 감시한다.
+  showScreen("quizScreen");
 
-      waiting = 대기
-      question = 문제 표시
-    */
+}
 
-    const stateRef = ref(database, "quizState");
 
-    onValue(stateRef, function(snapshot) {
 
-      if (!joined) return;
+/* ------------------------
+   일반/OX 선택
+------------------------- */
 
-      const state = snapshot.val();
+async function submitChoice(
+  button,
+  answer
+) {
 
-      if (!state) {
-        showScreen("waitingScreen");
-        return;
-      }
+  if (
+    submittedQuestion ===
+    currentQuestion
+  ) return;
 
-      if (state.status === "waiting") {
-        showScreen("waitingScreen");
-      }
 
-      if (state.status === "question") {
+  document.querySelectorAll(".answer")
+    .forEach(btn => {
 
-        if (!submitted) {
-          showScreen("quizScreen");
-        }
-
-      }
+      btn.disabled = true;
 
     });
 
-  </script>
+
+  button.classList.add("selected");
+
+
+  myAnswer = answer;
+
+
+  await saveAnswer(answer);
+
+}
+
+
+
+/* ------------------------
+   순서 선택
+------------------------- */
+
+function selectOrder(
+  button,
+  option
+) {
+
+  if (
+    submittedQuestion ===
+    currentQuestion
+  ) return;
+
+
+  if (
+    orderSelection.includes(option)
+  ) return;
+
+
+  orderSelection.push(option);
+
+
+  button.classList.add("used");
+
+  button.disabled = true;
+
+
+  updateOrderDisplay();
+
+}
+
+
+
+function updateOrderDisplay() {
+
+  const display =
+    document.getElementById("orderDisplay");
+
+
+  if (orderSelection.length === 0) {
+
+    display.textContent =
+      "아직 선택하지 않았습니다.";
+
+  } else {
+
+    display.textContent =
+      orderSelection.join(" → ");
+
+  }
+
+}
+
+
+
+window.resetOrder = function() {
+
+  if (
+    submittedQuestion ===
+    currentQuestion
+  ) return;
+
+
+  orderSelection = [];
+
+
+  document.querySelectorAll(".answer")
+    .forEach(btn => {
+
+      btn.disabled = false;
+
+      btn.classList.remove("used");
+
+    });
+
+
+  updateOrderDisplay();
+
+};
+
+
+
+window.submitOrder = async function() {
+
+  const q =
+    questions[currentQuestion];
+
+
+  if (
+    orderSelection.length !==
+    q.options.length
+  ) {
+
+    alert(
+      "모든 항목을 순서대로 선택해주세요."
+    );
+
+    return;
+
+  }
+
+
+  myAnswer =
+    [...orderSelection];
+
+
+  document.querySelectorAll(".answer")
+    .forEach(btn => {
+
+      btn.disabled = true;
+
+    });
+
+
+  await saveAnswer(myAnswer);
+
+};
+
+
+
+/* ------------------------
+   Firebase 답변 저장
+------------------------- */
+
+async function saveAnswer(answer) {
+
+  const q =
+    questions[currentQuestion];
+
+
+  let correct = false;
+
+
+  if (q.type === "order") {
+
+    correct =
+      JSON.stringify(answer) ===
+      JSON.stringify(q.correct);
+
+  } else {
+
+    correct =
+      answer === q.correct;
+
+  }
+
+
+  const newAnswerRef =
+    push(
+      ref(database, "answers")
+    );
+
+
+  try {
+
+    await set(
+      newAnswerRef,
+      {
+
+        nickname:
+          nickname,
+
+        question:
+          currentQuestion,
+
+        answer:
+          answer,
+
+        correct:
+          correct,
+
+        submittedAt:
+          Date.now()
+
+      }
+    );
+
+
+    submittedQuestion =
+      currentQuestion;
+
+
+    showScreen(
+      "submittedScreen"
+    );
+
+
+  } catch(error) {
+
+    alert(
+      "답변 전송에 실패했습니다."
+    );
+
+    console.error(error);
+
+  }
+
+}
+
+
+
+/* ------------------------
+   정답 결과 표시
+------------------------- */
+
+function showResult() {
+
+  const q =
+    questions[currentQuestion];
+
+
+  if (
+    submittedQuestion !==
+    currentQuestion
+  ) {
+
+    /*
+      답을 제출하지 않은 경우도
+      정답 공개 화면은 볼 수 있다.
+    */
+
+    myAnswer = null;
+
+  }
+
+
+  let isCorrect = false;
+
+
+  if (myAnswer !== null) {
+
+    if (q.type === "order") {
+
+      isCorrect =
+        JSON.stringify(myAnswer) ===
+        JSON.stringify(q.correct);
+
+    } else {
+
+      isCorrect =
+        myAnswer === q.correct;
+
+    }
+
+  }
+
+
+  document.getElementById("resultSymbol")
+    .textContent =
+    isCorrect ? "⭕" : "❌";
+
+
+  document.getElementById("resultTitle")
+    .textContent =
+    isCorrect ?
+    "정답입니다!" :
+    "아쉽네요!";
+
+
+  let myText =
+    "미제출";
+
+
+  if (myAnswer !== null) {
+
+    myText =
+      Array.isArray(myAnswer) ?
+      myAnswer.join(" → ") :
+      myAnswer;
+
+  }
+
+
+  let correctText =
+    Array.isArray(q.correct) ?
+    q.correct.join(" → ") :
+    q.correct;
+
+
+  document.getElementById("myAnswer")
+    .textContent =
+    "내 답 : " +
+    myText;
+
+
+  document.getElementById("correctAnswer")
+    .textContent =
+    "정답 : " +
+    correctText;
+
+
+  document.getElementById("explanation")
+    .textContent =
+    q.explanation;
+
+
+  showScreen("resultScreen");
+
+}
+
+
+
+/* ------------------------
+   강사 진행상태 감시
+------------------------- */
+
+onValue(
+  ref(database, "quizState"),
+  snapshot => {
+
+    if (!joined) return;
+
+
+    const state =
+      snapshot.val();
+
+
+    if (!state) {
+
+      showScreen(
+        "waitingScreen"
+      );
+
+      return;
+
+    }
+
+
+    if (
+      state.status ===
+      "question"
+    ) {
+
+      const newQuestion =
+        Number(
+          state.question
+        );
+
+
+      /*
+        새로운 문제일 때만
+        문제화면 초기화
+      */
+
+      if (
+        newQuestion !==
+        currentQuestion
+      ) {
+
+        displayQuestion(
+          newQuestion
+        );
+
+      }
+
+    }
+
+
+    if (
+      state.status ===
+      "result"
+    ) {
+
+      currentQuestion =
+        Number(
+          state.question
+        );
+
+
+      showResult();
+
+    }
+
+
+    if (
+      state.status ===
+      "waiting"
+    ) {
+
+      showScreen(
+        "waitingScreen"
+      );
+
+    }
+
+
+    if (
+      state.status ===
+      "finished"
+    ) {
+
+      showScreen(
+        "finishedScreen"
+      );
+
+    }
+
+  }
+);
+
+</script>
 
 </body>
 </html>
