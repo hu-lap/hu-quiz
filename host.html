@@ -190,6 +190,39 @@ button {
     교육생 입장을 기다리고 있습니다
   </h2>
 
+<div style="margin:25px auto 30px;">
+
+  <div style="
+    font-size:20px;
+    margin-bottom:15px;
+    color:#555;
+  ">
+    휴대폰으로 QR코드를 스캔하여 참여하세요
+  </div>
+
+  <img
+    id="joinQR"
+    alt="HU Quiz 참여 QR코드"
+    style="
+      width:220px;
+      height:220px;
+      background:white;
+      padding:10px;
+      border-radius:15px;
+      border:1px solid #ddd;
+    "
+  >
+
+  <div style="
+    margin-top:12px;
+    font-size:15px;
+    color:#888;
+  ">
+    hu-lap.github.io/hu-quiz/
+  </div>
+
+</div>
+  
   <div style="font-size:28px; margin:30px 0;">
     현재
     <strong>
@@ -738,5 +771,14 @@ onValue(ref(database, "answers"),
 
 </script>
 
+<script>
+  const joinUrl =
+    "https://hu-lap.github.io/hu-quiz/";
+
+  document.getElementById("joinQR").src =
+    "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" +
+    encodeURIComponent(joinUrl);
+</script>
+  
 </body>
 </html>
