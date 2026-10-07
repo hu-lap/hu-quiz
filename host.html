@@ -7,7 +7,9 @@
 <title>HU Quiz - 강사 화면</title>
 
 <style>
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
 
 body {
   margin: 0;
@@ -22,16 +24,27 @@ body {
   text-align: center;
 }
 
+/* ==============================
+   상단 영역
+============================== */
+
 .top {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 25px;
+  position: relative;
 }
 
 .logo {
   font-size: 24px;
   font-weight: bold;
+}
+
+.top-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .status {
@@ -40,6 +53,73 @@ body {
   border-radius: 30px;
   font-weight: bold;
 }
+
+/* 관리 버튼 - 정상 진행 버튼과 시각적으로 분리 */
+.manage-button {
+  margin: 0;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-weight: normal;
+  background: transparent;
+  color: #777;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* 관리 패널 */
+.management-panel {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: 52px;
+  width: 290px;
+  padding: 18px;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 12px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.15);
+  z-index: 1000;
+  text-align: left;
+}
+
+.management-title {
+  font-size: 17px;
+  font-weight: bold;
+  margin-bottom: 12px;
+}
+
+.management-note {
+  margin-top: 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #777;
+}
+
+/* 초기화는 관리 패널 안에만 존재 */
+.reset-button {
+  width: 100%;
+  margin: 0;
+  padding: 12px;
+  font-size: 15px;
+  font-weight: bold;
+  background: white;
+  color: #444;
+  border: 1px solid #bbb;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.reset-button:disabled {
+  background: #eee;
+  color: #aaa;
+  border-color: #ddd;
+  cursor: not-allowed;
+}
+
+/* ==============================
+   문제 영역
+============================== */
 
 .question-number {
   color: #777;
@@ -75,6 +155,10 @@ body {
   font-weight: bold;
   border: 2px solid #e5e5e5;
 }
+
+/* ==============================
+   정답/결과
+============================== */
 
 .result-area {
   display: none;
@@ -125,6 +209,10 @@ body {
   transition: width 0.4s;
 }
 
+/* ==============================
+   순위
+============================== */
+
 .ranking {
   display: none;
   max-width: 650px;
@@ -143,6 +231,10 @@ body {
   font-size: 21px;
   border-bottom: 1px solid #eee;
 }
+
+/* ==============================
+   정상 진행 조작부
+============================== */
 
 .controls {
   margin-top: 35px;
@@ -172,6 +264,17 @@ button {
   font-size: 23px;
   padding: 20px 40px;
 }
+
+/* ==============================
+   종료 화면
+============================== */
+
+.finished-message {
+  font-size: 46px;
+  font-weight: bold;
+  margin: 40px 0 20px;
+}
+
 </style>
 </head>
 
@@ -179,114 +282,206 @@ button {
 
 <div class="container">
 
+  <!-- ==========================
+       상단
+  =========================== -->
+
   <div class="top">
-    <div class="logo">HU Quiz</div>
-    <div id="status" class="status">대기 중</div>
+
+    <div class="logo">
+      HU Quiz
+    </div>
+
+    <div class="top-right">
+
+      <div id="status" class="status">
+        대기 중
+      </div>
+
+      <button
+        class="manage-button"
+        onclick="toggleManagement()">
+        ⚙ 관리
+      </button>
+
+    </div>
+
+    <!-- 관리 기능은 정상 진행 버튼과 분리 -->
+    <div
+      id="managementPanel"
+      class="management-panel">
+
+      <div class="management-title">
+        퀴즈 관리
+      </div>
+
+      <button
+        id="resetButton"
+        class="reset-button"
+        onclick="resetQuiz()">
+        새 퀴즈 준비
+      </button>
+
+      <div
+        id="resetNotice"
+        class="management-note">
+        이전 참가자와 답변을 초기화합니다.
+      </div>
+
+    </div>
+
   </div>
-<!-- 참가자 대기 화면 -->
-<div id="lobbyArea">
 
-  <h2 style="font-size:32px; margin-top:40px;">
-    교육생 입장을 기다리고 있습니다
-  </h2>
 
-<div style="margin:25px auto 30px;">
+  <!-- ==========================
+       참가자 대기 화면
+  =========================== -->
 
-  <div style="
-    font-size:20px;
-    margin-bottom:15px;
-    color:#555;
-  ">
-    휴대폰으로 QR코드를 스캔하여 참여하세요
+  <div id="lobbyArea">
+
+    <h2 style="font-size:32px; margin-top:40px;">
+      교육생 입장을 기다리고 있습니다
+    </h2>
+
+    <div style="margin:25px auto 30px;">
+
+      <div style="
+        font-size:20px;
+        margin-bottom:15px;
+        color:#555;
+      ">
+        휴대폰으로 QR코드를 스캔하여 참여하세요
+      </div>
+
+      <img
+        id="joinQR"
+        alt="HU Quiz 참여 QR코드"
+        style="
+          width:220px;
+          height:220px;
+          background:white;
+          padding:10px;
+          border-radius:15px;
+          border:1px solid #ddd;
+        "
+      >
+
+      <div style="
+        margin-top:12px;
+        font-size:15px;
+        color:#888;
+      ">
+        hu-lap.github.io/hu-quiz/
+      </div>
+
+    </div>
+
+    <div style="font-size:28px; margin:30px 0;">
+      현재
+      <strong>
+        <span id="participantCount">0</span>명
+      </strong>
+      입장
+    </div>
+
+    <div
+      id="participantList"
+      style="
+        max-width:700px;
+        margin:20px auto;
+        font-size:20px;
+        line-height:1.8;
+      ">
+    </div>
+
   </div>
 
-  <img
-    id="joinQR"
-    alt="HU Quiz 참여 QR코드"
-    style="
-      width:220px;
-      height:220px;
-      background:white;
-      padding:10px;
-      border-radius:15px;
-      border:1px solid #ddd;
-    "
-  >
 
-  <div style="
-    margin-top:12px;
-    font-size:15px;
-    color:#888;
-  ">
-    hu-lap.github.io/hu-quiz/
-  </div>
-
-</div>
-  
-  <div style="font-size:28px; margin:30px 0;">
-    현재
-    <strong>
-      <span id="participantCount">0</span>명
-    </strong>
-    입장
-  </div>
+  <!-- ==========================
+       문제 화면
+  =========================== -->
 
   <div
-    id="participantList"
-    style="
-      max-width:700px;
-      margin:20px auto;
-      font-size:20px;
-      line-height:1.8;
-    ">
-  </div>
+    id="questionArea"
+    style="display:none;">
 
-</div>
-<div id="questionArea" style="display:none;">
-
-    <div id="questionNumber" class="question-number">
+    <div
+      id="questionNumber"
+      class="question-number">
       퀴즈 시작 전
     </div>
 
-    <div id="questionText" class="question">
+    <div
+      id="questionText"
+      class="question">
       준비가 완료되면 퀴즈를 시작하세요.
     </div>
 
-    <div id="options" class="options"></div>
+    <div
+      id="options"
+      class="options">
+    </div>
 
-    <div class="response">
-      응답 <strong><span id="responseCount">0</span>명</strong>
+    <div
+      id="responseArea"
+      class="response">
+      응답
+      <strong>
+        <span id="responseCount">0</span>명
+      </strong>
     </div>
 
   </div>
 
 
-  <div id="resultArea" class="result-area">
+  <!-- ==========================
+       정답 결과
+  =========================== -->
 
-    <div id="correctAnswer" class="correct-answer"></div>
+  <div
+    id="resultArea"
+    class="result-area">
 
-    <div id="explanation" class="explanation"></div>
+    <div
+      id="correctAnswer"
+      class="correct-answer">
+    </div>
 
-    <div id="resultBars"></div>
+    <div
+      id="explanation"
+      class="explanation">
+    </div>
+
+    <div id="resultBars">
+    </div>
 
   </div>
 
 
-  <div id="ranking" class="ranking">
-    <h2>현재 순위</h2>
-    <div id="rankingList"></div>
+  <!-- ==========================
+       순위
+  =========================== -->
+
+  <div
+    id="ranking"
+    class="ranking">
+
+    <h2 id="rankingTitle">
+      현재 순위
+    </h2>
+
+    <div id="rankingList">
+    </div>
+
   </div>
 
+
+  <!-- ==========================
+       정상 진행 조작부
+  =========================== -->
 
   <div class="controls">
 
-<button
-  id="resetButton"
-  class="secondary"
-  onclick="resetQuiz()">
-  새 퀴즈 준비
-</button>
-    
     <button
       id="startButton"
       class="primary"
@@ -339,24 +534,46 @@ import {
 from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
 
 
+/* ==============================
+   Firebase 설정
+============================== */
+
 const firebaseConfig = {
-  apiKey: "AIzaSyAYszYNkItL6kfrpJ5An7Z_AgDVY4nmUbg",
-  authDomain: "hu-quiz.firebaseapp.com",
+
+  apiKey:
+    "AIzaSyAYszYNkItL6kfrpJ5An7Z_AgDVY4nmUbg",
+
+  authDomain:
+    "hu-quiz.firebaseapp.com",
+
   databaseURL:
     "https://hu-quiz-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "hu-quiz",
-  storageBucket: "hu-quiz.firebasestorage.app",
-  messagingSenderId: "344334242719",
-  appId: "1:344334242719:web:b87436d3cba0fafd6ca3aa"
+
+  projectId:
+    "hu-quiz",
+
+  storageBucket:
+    "hu-quiz.firebasestorage.app",
+
+  messagingSenderId:
+    "344334242719",
+
+  appId:
+    "1:344334242719:web:b87436d3cba0fafd6ca3aa"
+
 };
 
-const app = initializeApp(firebaseConfig);
-const database = getDatabase(app);
+
+const app =
+  initializeApp(firebaseConfig);
+
+const database =
+  getDatabase(app);
 
 
-/* ------------------------------
+/* ==============================
    샘플 문제
--------------------------------- */
+============================== */
 
 const questions = [
 
@@ -365,7 +582,8 @@ const questions = [
     text: "탕수육을 먹을 때 당신의 선택은?",
     options: ["부먹", "찍먹"],
     correct: "찍먹",
-    explanation: "샘플 문제입니다. 정답은 찍먹으로 설정했습니다."
+    explanation:
+      "샘플 문제입니다. 정답은 찍먹으로 설정했습니다."
   },
 
   {
@@ -373,7 +591,8 @@ const questions = [
     text: "대한민국의 수도는 서울이다.",
     options: ["O", "X"],
     correct: "O",
-    explanation: "대한민국의 수도는 서울입니다."
+    explanation:
+      "대한민국의 수도는 서울입니다."
   },
 
   {
@@ -381,7 +600,8 @@ const questions = [
     text: "다음 중 우리나라의 수도는 어디일까요?",
     options: ["서울", "부산", "대전", "제주"],
     correct: "서울",
-    explanation: "대한민국의 수도는 서울입니다."
+    explanation:
+      "대한민국의 수도는 서울입니다."
   },
 
   {
@@ -396,75 +616,144 @@ const questions = [
 ];
 
 
+/* ==============================
+   현재 상태
+
+   waiting  : 대기
+   question : 문제 진행
+   result   : 정답 공개
+   finished : 종료
+============================== */
+
+let quizMode = "waiting";
+
 let currentQuestion = -1;
+
 let currentAnswers = [];
 
 
-/* ------------------------------
-   문제 화면 표시
--------------------------------- */
+/* ==============================
+   관리 메뉴
+============================== */
 
-function displayQuestion() {
+window.toggleManagement = function() {
 
-  const q = questions[currentQuestion];
+  const panel =
+    document.getElementById("managementPanel");
 
-  document.getElementById("questionNumber").textContent =
-    "문제 " + (currentQuestion + 1) +
-    " / " + questions.length;
+  if (panel.style.display === "block") {
 
-  document.getElementById("questionText").textContent =
-    q.text;
+    panel.style.display = "none";
 
-  const optionsDiv =
-    document.getElementById("options");
+  } else {
 
-  optionsDiv.innerHTML = "";
+    panel.style.display = "block";
 
-  q.options.forEach((option, index) => {
+  }
 
-    const div = document.createElement("div");
+};
 
-    div.className = "option";
 
-    div.textContent =
-      (index + 1) + ". " + option;
+/* ==============================
+   관리기능 상태 변경
 
-    optionsDiv.appendChild(div);
+   진행 중에는 초기화 인터록
+============================== */
 
-  });
+function updateManagementState() {
+
+  const resetButton =
+    document.getElementById("resetButton");
+
+  const resetNotice =
+    document.getElementById("resetNotice");
+
+
+  if (
+    quizMode === "question" ||
+    quizMode === "result"
+  ) {
+
+    resetButton.disabled = true;
+
+    resetButton.textContent =
+      "🔒 새 퀴즈 준비";
+
+    resetNotice.textContent =
+      "퀴즈 진행 중에는 초기화할 수 없습니다.";
+
+  } else {
+
+    resetButton.disabled = false;
+
+    resetButton.textContent =
+      "새 퀴즈 준비";
+
+    resetNotice.textContent =
+      "이전 참가자와 답변을 초기화합니다.";
+
+  }
 
 }
 
 
-/* ------------------------------
-   퀴즈 시작
--------------------------------- */
-
-/* ------------------------------
+/* ==============================
    새 퀴즈 준비
--------------------------------- */
+============================== */
 
 window.resetQuiz = async function() {
 
+  /*
+    UI 비활성화 외에도
+    함수 자체에서 다시 한번 차단.
+    즉 이중 방어.
+  */
+
+  if (
+    quizMode === "question" ||
+    quizMode === "result"
+  ) {
+
+    alert(
+      "퀴즈가 진행 중입니다.\n" +
+      "진행 중에는 초기화할 수 없습니다."
+    );
+
+    return;
+
+  }
+
+
+  const participantCount =
+    document.getElementById("participantCount")
+      .textContent;
+
+
   const ok = confirm(
-    "이전 참가자와 답변을 모두 삭제하고 새 퀴즈를 준비할까요?"
+    "새 퀴즈를 준비하시겠습니까?\n\n" +
+    "현재 참가자 " +
+    participantCount +
+    "명과 기존 답변이 모두 삭제됩니다.\n\n" +
+    "이 작업은 되돌릴 수 없습니다."
   );
 
-  if (!ok) return;
+
+  if (!ok) {
+    return;
+  }
+
 
   try {
 
-    // 이전 참가자 삭제
     await remove(
       ref(database, "participants")
     );
 
-    // 이전 답변 삭제
     await remove(
       ref(database, "answers")
     );
 
-    // 퀴즈를 대기 상태로 변경
+
     await set(
       ref(database, "quizState"),
       {
@@ -473,181 +762,506 @@ window.resetQuiz = async function() {
       }
     );
 
+
+    quizMode = "waiting";
+
     currentQuestion = -1;
+
     currentAnswers = [];
 
+
     document.getElementById("status")
-      .textContent = "대기 중";
+      .textContent =
+      "대기 중";
+
 
     document.getElementById("responseCount")
-      .textContent = "0";
+      .textContent =
+      "0";
+
 
     document.getElementById("lobbyArea")
-      .style.display = "block";
+      .style.display =
+      "block";
+
 
     document.getElementById("questionArea")
-      .style.display = "none";
+      .style.display =
+      "none";
+
 
     document.getElementById("resultArea")
-      .style.display = "none";
+      .style.display =
+      "none";
+
 
     document.getElementById("ranking")
-      .style.display = "none";
+      .style.display =
+      "none";
+
 
     document.getElementById("startButton")
-      .style.display = "inline-block";
+      .style.display =
+      "inline-block";
+
 
     document.getElementById("answerButton")
-      .style.display = "none";
+      .style.display =
+      "none";
+
 
     document.getElementById("rankButton")
-      .style.display = "none";
+      .style.display =
+      "none";
+
 
     document.getElementById("nextButton")
-      .style.display = "none";
+      .style.display =
+      "none";
 
-    alert("새 퀴즈 준비가 완료되었습니다.");
+
+    document.getElementById("managementPanel")
+      .style.display =
+      "none";
+
+
+    updateManagementState();
+
+
+    alert(
+      "새 퀴즈 준비가 완료되었습니다."
+    );
+
 
   } catch(error) {
 
-    alert("초기화에 실패했습니다.");
+    alert(
+      "초기화에 실패했습니다."
+    );
 
     console.error(error);
 
   }
 
 };
-  
+
+
+/* ==============================
+   문제 화면 표시
+============================== */
+
+function displayQuestion() {
+
+  const q =
+    questions[currentQuestion];
+
+
+  document.getElementById("questionNumber")
+    .textContent =
+    "문제 " +
+    (currentQuestion + 1) +
+    " / " +
+    questions.length;
+
+
+  document.getElementById("questionText")
+    .textContent =
+    q.text;
+
+
+  const optionsDiv =
+    document.getElementById("options");
+
+
+  optionsDiv.innerHTML = "";
+
+
+  q.options.forEach(
+    (option, index) => {
+
+      const div =
+        document.createElement("div");
+
+      div.className =
+        "option";
+
+      div.textContent =
+        (index + 1) +
+        ". " +
+        option;
+
+      optionsDiv.appendChild(div);
+
+    }
+  );
+
+}
+
+
+/* ==============================
+   퀴즈 시작
+============================== */
+
 window.startQuiz = async function() {
 
+  /*
+    참가자가 한 명도 없을 때
+    실수로 시작하는 것도 방지
+  */
+
+  const participantCount =
+    Number(
+      document.getElementById(
+        "participantCount"
+      ).textContent
+    );
+
+
+  if (participantCount === 0) {
+
+    alert(
+      "입장한 참가자가 없습니다.\n" +
+      "참가자 입장 후 퀴즈를 시작해주세요."
+    );
+
+    return;
+
+  }
+
+
   currentQuestion = 0;
-document.getElementById("lobbyArea").style.display = "none";
 
-  document.getElementById("questionArea").style.display = "block";
-  
-  // 이전 테스트 답변 초기화
-  await remove(ref(database, "answers"));
+  currentAnswers = [];
 
-  await set(ref(database, "quizState"), {
-    status: "question",
-    question: 0,
-    revealed: false,
-    startedAt: Date.now()
-  });
+  quizMode = "question";
+
+
+  document.getElementById("managementPanel")
+    .style.display =
+    "none";
+
+
+  document.getElementById("lobbyArea")
+    .style.display =
+    "none";
+
+
+  document.getElementById("questionArea")
+    .style.display =
+    "block";
+
+
+  /*
+    새 퀴즈 시작 시
+    이전 답변만 초기화
+  */
+
+  await remove(
+    ref(database, "answers")
+  );
+
+
+  await set(
+    ref(database, "quizState"),
+    {
+      status: "question",
+      question: 0,
+      revealed: false,
+      startedAt: Date.now()
+    }
+  );
+
 
   displayQuestion();
 
-  document.getElementById("status").textContent =
+
+  document.getElementById("status")
+    .textContent =
     "문제 진행 중";
 
-  document.getElementById("startButton").style.display =
+
+  document.getElementById("startButton")
+    .style.display =
     "none";
 
-  document.getElementById("answerButton").style.display =
+
+  document.getElementById("answerButton")
+    .style.display =
     "inline-block";
 
-  document.getElementById("rankButton").style.display =
+
+  document.getElementById("rankButton")
+    .style.display =
     "none";
 
-  document.getElementById("nextButton").style.display =
+
+  document.getElementById("nextButton")
+    .style.display =
     "none";
 
-  document.getElementById("resultArea").style.display =
+
+  document.getElementById("resultArea")
+    .style.display =
     "none";
 
-  document.getElementById("ranking").style.display =
+
+  document.getElementById("ranking")
+    .style.display =
     "none";
+
+
+  updateManagementState();
 
 };
 
 
-/* ------------------------------
+/* ==============================
    정답 공개
--------------------------------- */
+============================== */
 
 window.revealAnswer = async function() {
 
-  const q = questions[currentQuestion];
+  if (quizMode !== "question") {
+    return;
+  }
 
-  await set(ref(database, "quizState"), {
-    status: "result",
-    question: currentQuestion,
-    revealed: true
-  });
+
+  const q =
+    questions[currentQuestion];
+
+
+  quizMode =
+    "result";
+
+
+  await set(
+    ref(database, "quizState"),
+    {
+      status: "result",
+      question: currentQuestion,
+      revealed: true
+    }
+  );
+
 
   showResults(q);
 
-  document.getElementById("status").textContent =
+
+  document.getElementById("status")
+    .textContent =
     "정답 공개";
 
-  document.getElementById("answerButton").style.display =
+
+  document.getElementById("answerButton")
+    .style.display =
     "none";
 
-  document.getElementById("rankButton").style.display =
+
+  document.getElementById("rankButton")
+    .style.display =
     "inline-block";
 
-  document.getElementById("nextButton").style.display =
+
+  document.getElementById("nextButton")
+    .style.display =
     "inline-block";
+
+
+  updateManagementState();
 
 };
 
 
-/* ------------------------------
+/* ==============================
    결과 표시
--------------------------------- */
+============================== */
 
 function showResults(q) {
 
-  document.getElementById("resultArea").style.display =
+  document.getElementById("resultArea")
+    .style.display =
     "block";
+
 
   let correctText;
 
+
   if (q.type === "order") {
-    correctText = q.correct.join(" → ");
+
+    correctText =
+      q.correct.join(" → ");
+
   } else {
-    correctText = q.correct;
+
+    correctText =
+      q.correct;
+
   }
 
-  document.getElementById("correctAnswer").textContent =
-    "정답 : " + correctText;
 
-  document.getElementById("explanation").textContent =
+  document.getElementById("correctAnswer")
+    .textContent =
+    "정답 : " +
+    correctText;
+
+
+  document.getElementById("explanation")
+    .textContent =
     q.explanation;
+
 
   const resultBars =
     document.getElementById("resultBars");
 
+
   resultBars.innerHTML = "";
+
+
+  /*
+    순서 선택 문제는
+    단일 보기별 분포가 의미가 없으므로
+    제출한 순서 조합별로 집계
+  */
+
+  if (q.type === "order") {
+
+    const orderCounts = {};
+
+
+    currentAnswers.forEach(data => {
+
+      let answerText;
+
+
+      if (Array.isArray(data.answer)) {
+
+        answerText =
+          data.answer.join(" → ");
+
+      } else {
+
+        answerText =
+          String(data.answer)
+            .split(",")
+            .join(" → ");
+
+      }
+
+
+      if (!orderCounts[answerText]) {
+        orderCounts[answerText] = 0;
+      }
+
+
+      orderCounts[answerText]++;
+
+    });
+
+
+    const total =
+      currentAnswers.length;
+
+
+    Object.entries(orderCounts)
+      .sort((a,b) => b[1] - a[1])
+      .forEach(([answer, count]) => {
+
+        const percent =
+          total === 0
+            ? 0
+            : (count / total) * 100;
+
+
+        const row =
+          document.createElement("div");
+
+
+        row.className =
+          "result-row";
+
+
+        row.innerHTML = `
+          <div class="result-label">
+            ${answer} : ${count}명
+          </div>
+
+          <div class="bar-bg">
+            <div
+              class="bar"
+              style="width:${percent}%">
+            </div>
+          </div>
+        `;
+
+
+        resultBars.appendChild(row);
+
+      });
+
+
+    if (total === 0) {
+
+      resultBars.innerHTML =
+        "<div style='color:#777;'>응답이 없습니다.</div>";
+
+    }
+
+
+    return;
+
+  }
+
+
+  /*
+    일반 선택형 / OX
+  */
 
   const counts = {};
 
-  q.options.forEach(option => counts[option] = 0);
+
+  q.options.forEach(
+    option => {
+      counts[option] = 0;
+    }
+  );
+
 
   currentAnswers.forEach(data => {
 
-    if (q.type !== "order") {
+    if (
+      counts[data.answer] !== undefined
+    ) {
 
-      if (counts[data.answer] !== undefined) {
-        counts[data.answer]++;
-      }
+      counts[data.answer]++;
 
     }
 
   });
 
-  const total = currentAnswers.length;
+
+  const total =
+    currentAnswers.length;
+
 
   q.options.forEach(option => {
 
-    const count = counts[option] || 0;
+    const count =
+      counts[option] || 0;
+
 
     const percent =
-      total === 0 ? 0 : (count / total) * 100;
+      total === 0
+        ? 0
+        : (count / total) * 100;
 
-    const row = document.createElement("div");
 
-    row.className = "result-row";
+    const row =
+      document.createElement("div");
+
+
+    row.className =
+      "result-row";
+
 
     row.innerHTML = `
       <div class="result-label">
@@ -662,6 +1276,7 @@ function showResults(q) {
       </div>
     `;
 
+
     resultBars.appendChild(row);
 
   });
@@ -669,27 +1284,38 @@ function showResults(q) {
 }
 
 
-/* ------------------------------
+/* ==============================
    순위 공개
--------------------------------- */
+============================== */
 
 window.showRanking = async function() {
 
   const snapshot =
-    await get(ref(database, "answers"));
+    await get(
+      ref(database, "answers")
+    );
+
 
   const scores = {};
 
+
   snapshot.forEach(child => {
 
-    const data = child.val();
+    const data =
+      child.val();
+
 
     if (!scores[data.nickname]) {
+
       scores[data.nickname] = 0;
+
     }
 
+
     if (data.correct === true) {
+
       scores[data.nickname] += 1000;
+
     }
 
   });
@@ -697,176 +1323,354 @@ window.showRanking = async function() {
 
   const sorted =
     Object.entries(scores)
-      .sort((a,b) => b[1] - a[1]);
+      .sort(
+        (a,b) =>
+          b[1] - a[1]
+      );
 
 
   const list =
-    document.getElementById("rankingList");
+    document.getElementById(
+      "rankingList"
+    );
+
 
   list.innerHTML = "";
 
 
-  sorted.slice(0, 3).forEach((item, index) => {
+  if (sorted.length === 0) {
 
-    const div =
-      document.createElement("div");
+    list.innerHTML =
+      "<div class='rank-item'>아직 순위 데이터가 없습니다.</div>";
 
-    div.className = "rank-item";
-
-    const medal =
-      index === 0 ? "🥇" :
-      index === 1 ? "🥈" : "🥉";
-
-    div.textContent =
-      medal + " " +
-      item[0] + "  " +
-      item[1] + "점";
-
-    list.appendChild(div);
-
-  });
+  }
 
 
-  document.getElementById("ranking").style.display =
+  sorted
+    .slice(0,3)
+    .forEach(
+      (item,index) => {
+
+        const div =
+          document.createElement("div");
+
+
+        div.className =
+          "rank-item";
+
+
+        const medal =
+          index === 0
+            ? "🥇"
+            : index === 1
+              ? "🥈"
+              : "🥉";
+
+
+        div.textContent =
+          medal +
+          " " +
+          item[0] +
+          "  " +
+          item[1] +
+          "점";
+
+
+        list.appendChild(div);
+
+      }
+    );
+
+
+  document.getElementById("rankingTitle")
+    .textContent =
+    quizMode === "finished"
+      ? "🏆 최종 순위"
+      : "현재 순위";
+
+
+  document.getElementById("ranking")
+    .style.display =
     "block";
 
 };
 
 
-/* ------------------------------
+/* ==============================
    다음 문제
--------------------------------- */
+============================== */
 
 window.nextQuestion = async function() {
 
-  currentQuestion++;
-
-  if (currentQuestion >= questions.length) {
-
-    document.getElementById("status").textContent =
-      "퀴즈 종료";
-
-    document.getElementById("questionNumber").textContent =
-      "퀴즈 종료";
-
-    document.getElementById("questionText").textContent =
-      "수고하셨습니다!";
-
-    document.getElementById("options").innerHTML = "";
-
-    document.getElementById("resultArea").style.display =
-      "none";
-
-    document.getElementById("nextButton").style.display =
-      "none";
-
-    document.getElementById("rankButton").style.display =
-      "inline-block";
-
-    await set(ref(database, "quizState"), {
-      status: "finished"
-    });
-
+  if (quizMode !== "result") {
     return;
   }
 
 
-  await set(ref(database, "quizState"), {
-    status: "question",
-    question: currentQuestion,
-    revealed: false,
-    startedAt: Date.now()
-  });
+  currentQuestion++;
+
+
+  /* 마지막 문제 종료 */
+
+  if (
+    currentQuestion >=
+    questions.length
+  ) {
+
+    quizMode =
+      "finished";
+
+
+    document.getElementById("status")
+      .textContent =
+      "퀴즈 종료";
+
+
+    document.getElementById("questionNumber")
+      .textContent =
+      "퀴즈 종료";
+
+
+    document.getElementById("questionText")
+      .innerHTML =
+      "🎉 수고하셨습니다!";
+
+
+    document.getElementById("options")
+      .innerHTML =
+      "";
+
+
+    document.getElementById("responseArea")
+      .style.display =
+      "none";
+
+
+    document.getElementById("resultArea")
+      .style.display =
+      "none";
+
+
+    document.getElementById("nextButton")
+      .style.display =
+      "none";
+
+
+    document.getElementById("answerButton")
+      .style.display =
+      "none";
+
+
+    document.getElementById("rankButton")
+      .style.display =
+      "inline-block";
+
+
+    await set(
+      ref(database, "quizState"),
+      {
+        status: "finished",
+        finishedAt: Date.now()
+      }
+    );
+
+
+    updateManagementState();
+
+
+    /*
+      종료 시 최종 순위 자동 표시
+    */
+
+    await window.showRanking();
+
+
+    return;
+
+  }
+
+
+  /* 다음 문제 */
+
+  quizMode =
+    "question";
+
+
+  currentAnswers = [];
+
+
+  await set(
+    ref(database, "quizState"),
+    {
+      status: "question",
+      question: currentQuestion,
+      revealed: false,
+      startedAt: Date.now()
+    }
+  );
 
 
   displayQuestion();
 
-  document.getElementById("status").textContent =
+
+  document.getElementById("status")
+    .textContent =
     "문제 진행 중";
 
-  document.getElementById("resultArea").style.display =
+
+  document.getElementById("responseArea")
+    .style.display =
+    "block";
+
+
+  document.getElementById("responseCount")
+    .textContent =
+    "0";
+
+
+  document.getElementById("resultArea")
+    .style.display =
     "none";
 
-  document.getElementById("ranking").style.display =
+
+  document.getElementById("ranking")
+    .style.display =
     "none";
 
-  document.getElementById("answerButton").style.display =
+
+  document.getElementById("answerButton")
+    .style.display =
     "inline-block";
 
-  document.getElementById("rankButton").style.display =
+
+  document.getElementById("rankButton")
+    .style.display =
     "none";
 
-  document.getElementById("nextButton").style.display =
+
+  document.getElementById("nextButton")
+    .style.display =
     "none";
+
+
+  updateManagementState();
 
 };
 
 
-/* ------------------------------
-   현재 문제 답변 실시간 수신
--------------------------------- */
-/* ------------------------------
+/* ==============================
    참가자 실시간 표시
--------------------------------- */
+============================== */
 
-onValue(ref(database, "participants"),
-(snapshot) => {
+onValue(
+  ref(database, "participants"),
+  (snapshot) => {
 
-  let count = 0;
-  const names = [];
+    let count = 0;
 
-  snapshot.forEach(child => {
+    const names = [];
 
-    const data = child.val();
 
-    count++;
+    snapshot.forEach(child => {
 
-    if (data.nickname) {
-      names.push(data.nickname);
-    }
+      const data =
+        child.val();
 
-  });
 
-  document.getElementById("participantCount")
-    .textContent = count;
+      count++;
 
-  document.getElementById("participantList")
-    .textContent = names.join(" · ");
 
-});
-onValue(ref(database, "answers"),
-(snapshot) => {
+      if (data.nickname) {
 
-  currentAnswers = [];
+        names.push(
+          data.nickname
+        );
 
-  snapshot.forEach(child => {
+      }
 
-    const data = child.val();
+    });
 
-    if (
-      Number(data.question) ===
-      currentQuestion
-    ) {
-      currentAnswers.push(data);
-    }
 
-  });
+    document.getElementById(
+      "participantCount"
+    ).textContent =
+      count;
 
-  document.getElementById("responseCount").textContent =
-    currentAnswers.length;
 
-});
+    document.getElementById(
+      "participantList"
+    ).textContent =
+      names.join(" · ");
+
+  }
+);
+
+
+/* ==============================
+   현재 문제 답변 실시간 수신
+============================== */
+
+onValue(
+  ref(database, "answers"),
+  (snapshot) => {
+
+    currentAnswers = [];
+
+
+    snapshot.forEach(child => {
+
+      const data =
+        child.val();
+
+
+      if (
+        Number(data.question) ===
+        currentQuestion
+      ) {
+
+        currentAnswers.push(
+          data
+        );
+
+      }
+
+    });
+
+
+    document.getElementById(
+      "responseCount"
+    ).textContent =
+      currentAnswers.length;
+
+  }
+);
+
+
+/* ==============================
+   초기 관리 상태
+============================== */
+
+updateManagementState();
 
 </script>
+
+
+<!-- ==========================
+     QR 생성
+=========================== -->
 
 <script>
-  const joinUrl =
-    "https://hu-lap.github.io/hu-quiz/";
 
-  document.getElementById("joinQR").src =
-    "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" +
-    encodeURIComponent(joinUrl);
+const joinUrl =
+  "https://hu-lap.github.io/hu-quiz/";
+
+
+document.getElementById("joinQR").src =
+  "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" +
+  encodeURIComponent(joinUrl);
+
 </script>
-  
+
+
 </body>
 </html>
