@@ -183,7 +183,32 @@ button {
     <div class="logo">HU Quiz</div>
     <div id="status" class="status">대기 중</div>
   </div>
+<!-- 참가자 대기 화면 -->
+<div id="lobbyArea">
 
+  <h2 style="font-size:32px; margin-top:40px;">
+    교육생 입장을 기다리고 있습니다
+  </h2>
+
+  <div style="font-size:28px; margin:30px 0;">
+    현재
+    <strong>
+      <span id="participantCount">0</span>명
+    </strong>
+    입장
+  </div>
+
+  <div
+    id="participantList"
+    style="
+      max-width:700px;
+      margin:20px auto;
+      font-size:20px;
+      line-height:1.8;
+    ">
+  </div>
+
+</div>
   <div id="questionArea">
 
     <div id="questionNumber" class="question-number">
@@ -378,7 +403,7 @@ function displayQuestion() {
 window.startQuiz = async function() {
 
   currentQuestion = 0;
-
+document.getElementById("lobbyArea").style.display = "none";
   // 이전 테스트 답변 초기화
   await remove(ref(database, "answers"));
 
@@ -659,7 +684,35 @@ window.nextQuestion = async function() {
 /* ------------------------------
    현재 문제 답변 실시간 수신
 -------------------------------- */
+/* ------------------------------
+   참가자 실시간 표시
+-------------------------------- */
 
+onValue(ref(database, "participants"),
+(snapshot) => {
+
+  let count = 0;
+  const names = [];
+
+  snapshot.forEach(child => {
+
+    const data = child.val();
+
+    count++;
+
+    if (data.nickname) {
+      names.push(data.nickname);
+    }
+
+  });
+
+  document.getElementById("participantCount")
+    .textContent = count;
+
+  document.getElementById("participantList")
+    .textContent = names.join(" · ");
+
+});
 onValue(ref(database, "answers"),
 (snapshot) => {
 
