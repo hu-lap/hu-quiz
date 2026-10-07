@@ -242,7 +242,7 @@ button {
   </div>
 
 </div>
-  <div id="questionArea">
+<div id="questionArea" style="display:none;">
 
     <div id="questionNumber" class="question-number">
       퀴즈 시작 전
@@ -280,6 +280,13 @@ button {
 
   <div class="controls">
 
+<button
+  id="resetButton"
+  class="secondary"
+  onclick="resetQuiz()">
+  새 퀴즈 준비
+</button>
+    
     <button
       id="startButton"
       class="primary"
@@ -433,10 +440,91 @@ function displayQuestion() {
    퀴즈 시작
 -------------------------------- */
 
+/* ------------------------------
+   새 퀴즈 준비
+-------------------------------- */
+
+window.resetQuiz = async function() {
+
+  const ok = confirm(
+    "이전 참가자와 답변을 모두 삭제하고 새 퀴즈를 준비할까요?"
+  );
+
+  if (!ok) return;
+
+  try {
+
+    // 이전 참가자 삭제
+    await remove(
+      ref(database, "participants")
+    );
+
+    // 이전 답변 삭제
+    await remove(
+      ref(database, "answers")
+    );
+
+    // 퀴즈를 대기 상태로 변경
+    await set(
+      ref(database, "quizState"),
+      {
+        status: "waiting",
+        resetAt: Date.now()
+      }
+    );
+
+    currentQuestion = -1;
+    currentAnswers = [];
+
+    document.getElementById("status")
+      .textContent = "대기 중";
+
+    document.getElementById("responseCount")
+      .textContent = "0";
+
+    document.getElementById("lobbyArea")
+      .style.display = "block";
+
+    document.getElementById("questionArea")
+      .style.display = "none";
+
+    document.getElementById("resultArea")
+      .style.display = "none";
+
+    document.getElementById("ranking")
+      .style.display = "none";
+
+    document.getElementById("startButton")
+      .style.display = "inline-block";
+
+    document.getElementById("answerButton")
+      .style.display = "none";
+
+    document.getElementById("rankButton")
+      .style.display = "none";
+
+    document.getElementById("nextButton")
+      .style.display = "none";
+
+    alert("새 퀴즈 준비가 완료되었습니다.");
+
+  } catch(error) {
+
+    alert("초기화에 실패했습니다.");
+
+    console.error(error);
+
+  }
+
+};
+  
 window.startQuiz = async function() {
 
   currentQuestion = 0;
 document.getElementById("lobbyArea").style.display = "none";
+
+  document.getElementById("questionArea").style.display = "block";
+  
   // 이전 테스트 답변 초기화
   await remove(ref(database, "answers"));
 
