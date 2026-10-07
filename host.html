@@ -1,283 +1,689 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HU Quiz - 강사 화면</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <style>
-    * { box-sizing: border-box; }
+<title>HU Quiz - 강사 화면</title>
 
-    body {
-      margin: 0;
-      font-family: Arial, "Noto Sans KR", sans-serif;
-      background: #f4f6f9;
-      text-align: center;
-    }
+<style>
+* { box-sizing: border-box; }
 
-    .container {
-      min-height: 100vh;
-      padding: 45px;
-    }
+body {
+  margin: 0;
+  font-family: Arial, "Noto Sans KR", sans-serif;
+  background: #f4f6f9;
+  color: #222;
+}
 
-    h1 {
-      font-size: 32px;
-      margin: 0 0 35px;
-    }
+.container {
+  min-height: 100vh;
+  padding: 35px 5%;
+  text-align: center;
+}
 
-    .status {
-      display: inline-block;
-      padding: 10px 22px;
-      margin-bottom: 30px;
-      border-radius: 30px;
-      background: #ddd;
-      font-size: 18px;
-      font-weight: bold;
-    }
+.top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
 
-    .question {
-      font-size: 42px;
-      font-weight: bold;
-      margin-bottom: 35px;
-    }
+.logo {
+  font-size: 24px;
+  font-weight: bold;
+}
 
-    .total {
-      font-size: 30px;
-      margin-bottom: 35px;
-    }
+.status {
+  background: #e8e8e8;
+  padding: 10px 20px;
+  border-radius: 30px;
+  font-weight: bold;
+}
 
-    .results {
-      display: flex;
-      justify-content: center;
-      gap: 30px;
-    }
+.question-number {
+  color: #777;
+  font-size: 20px;
+  margin-top: 20px;
+}
 
-    .result {
-      width: 300px;
-      padding: 40px;
-      border-radius: 20px;
-      color: white;
-    }
+.question {
+  font-size: 40px;
+  font-weight: bold;
+  margin: 15px auto 30px;
+  max-width: 1000px;
+}
 
-    .result1 { background: #e74c3c; }
-    .result2 { background: #3498db; }
+.response {
+  font-size: 28px;
+  margin: 25px 0;
+}
 
-    .label {
-      font-size: 30px;
-      font-weight: bold;
-    }
+.options {
+  max-width: 900px;
+  margin: 20px auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
 
-    .count {
-      font-size: 70px;
-      font-weight: bold;
-      margin-top: 20px;
-    }
+.option {
+  background: white;
+  border-radius: 15px;
+  padding: 22px;
+  font-size: 22px;
+  font-weight: bold;
+  border: 2px solid #e5e5e5;
+}
 
-    .controls {
-      margin-top: 45px;
-    }
+.result-area {
+  display: none;
+  max-width: 900px;
+  margin: 25px auto;
+}
 
-    button {
-      padding: 18px 30px;
-      margin: 8px;
-      font-size: 20px;
-      font-weight: bold;
-      border: none;
-      border-radius: 12px;
-      cursor: pointer;
-    }
+.correct-answer {
+  background: #eaf7ee;
+  border: 2px solid #45a35b;
+  padding: 20px;
+  border-radius: 15px;
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
 
-    .start-button {
-      background: #222;
-      color: white;
-    }
+.explanation {
+  background: white;
+  padding: 20px;
+  border-radius: 15px;
+  font-size: 19px;
+  margin-bottom: 25px;
+}
 
-    .secondary-button {
-      background: white;
-      border: 1px solid #ddd;
-    }
-  </style>
+.result-row {
+  margin: 12px 0;
+  text-align: left;
+}
+
+.result-label {
+  margin-bottom: 6px;
+  font-weight: bold;
+}
+
+.bar-bg {
+  width: 100%;
+  height: 32px;
+  background: #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.bar {
+  height: 100%;
+  background: #555;
+  width: 0%;
+  transition: width 0.4s;
+}
+
+.ranking {
+  display: none;
+  max-width: 650px;
+  margin: 25px auto;
+  background: white;
+  border-radius: 18px;
+  padding: 25px;
+}
+
+.ranking h2 {
+  margin-top: 0;
+}
+
+.rank-item {
+  padding: 12px;
+  font-size: 21px;
+  border-bottom: 1px solid #eee;
+}
+
+.controls {
+  margin-top: 35px;
+}
+
+button {
+  border: none;
+  border-radius: 12px;
+  padding: 16px 26px;
+  margin: 7px;
+  font-size: 19px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.primary {
+  background: #222;
+  color: white;
+}
+
+.secondary {
+  background: white;
+  border: 1px solid #ccc;
+}
+
+#startButton {
+  font-size: 23px;
+  padding: 20px 40px;
+}
+</style>
 </head>
 
 <body>
 
-  <div class="container">
+<div class="container">
 
-    <h1>HU Quiz · 강사 화면</h1>
+  <div class="top">
+    <div class="logo">HU Quiz</div>
+    <div id="status" class="status">대기 중</div>
+  </div>
 
-    <div id="status" class="status">
-      대기 중
+  <div id="questionArea">
+
+    <div id="questionNumber" class="question-number">
+      퀴즈 시작 전
     </div>
 
-    <div class="question">
-      탕수육을 먹을 때 당신의 선택은?
+    <div id="questionText" class="question">
+      준비가 완료되면 퀴즈를 시작하세요.
     </div>
 
-    <div class="total">
-      응답 <strong><span id="totalCount">0</span>명</strong>
-    </div>
+    <div id="options" class="options"></div>
 
-    <div class="results">
-
-      <div class="result result1">
-        <div class="label">① 부먹</div>
-        <div class="count" id="pourCount">0</div>
-      </div>
-
-      <div class="result result2">
-        <div class="label">② 찍먹</div>
-        <div class="count" id="dipCount">0</div>
-      </div>
-
-    </div>
-
-    <div class="controls">
-
-      <button
-        class="start-button"
-        onclick="startQuestion()"
-      >
-        1번 문제 시작
-      </button>
-
-      <button class="secondary-button">
-        정답 공개
-      </button>
-
-      <button class="secondary-button">
-        다음 문제
-      </button>
-
+    <div class="response">
+      응답 <strong><span id="responseCount">0</span>명</strong>
     </div>
 
   </div>
 
 
-  <script type="module">
+  <div id="resultArea" class="result-area">
 
-    import { initializeApp }
-      from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+    <div id="correctAnswer" class="correct-answer"></div>
 
-    import {
-      getDatabase,
-      ref,
-      set,
-      onValue
-    } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
+    <div id="explanation" class="explanation"></div>
+
+    <div id="resultBars"></div>
+
+  </div>
 
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyAYszYNkItL6kfrpJ5An7Z_AgDVY4nmUbg",
-      authDomain: "hu-quiz.firebaseapp.com",
-      databaseURL: "https://hu-quiz-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "hu-quiz",
-      storageBucket: "hu-quiz.firebasestorage.app",
-      messagingSenderId: "344334242719",
-      appId: "1:344334242719:web:b87436d3cba0fafd6ca3aa"
-    };
+  <div id="ranking" class="ranking">
+    <h2>현재 순위</h2>
+    <div id="rankingList"></div>
+  </div>
 
 
-    const app = initializeApp(firebaseConfig);
-    const database = getDatabase(app);
+  <div class="controls">
+
+    <button
+      id="startButton"
+      class="primary"
+      onclick="startQuiz()">
+      퀴즈 시작
+    </button>
+
+    <button
+      id="answerButton"
+      class="secondary"
+      onclick="revealAnswer()"
+      style="display:none;">
+      정답 공개
+    </button>
+
+    <button
+      id="rankButton"
+      class="secondary"
+      onclick="showRanking()"
+      style="display:none;">
+      순위 공개
+    </button>
+
+    <button
+      id="nextButton"
+      class="primary"
+      onclick="nextQuestion()"
+      style="display:none;">
+      다음 문제
+    </button>
+
+  </div>
+
+</div>
 
 
-    // ----------------------------------
-    // 1번 문제 시작
-    // ----------------------------------
+<script type="module">
 
-    window.startQuestion = async function () {
+import { initializeApp }
+from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 
-      try {
+import {
+  getDatabase,
+  ref,
+  set,
+  get,
+  onValue,
+  remove
+}
+from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
 
-        await set(ref(database, "quizState"), {
-          status: "question",
-          question: 1,
-          startedAt: Date.now()
-        });
 
-        document.getElementById("status").textContent =
-          "1번 문제 진행 중";
+const firebaseConfig = {
+  apiKey: "AIzaSyAYszYNkItL6kfrpJ5An7Z_AgDVY4nmUbg",
+  authDomain: "hu-quiz.firebaseapp.com",
+  databaseURL:
+    "https://hu-quiz-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "hu-quiz",
+  storageBucket: "hu-quiz.firebasestorage.app",
+  messagingSenderId: "344334242719",
+  appId: "1:344334242719:web:b87436d3cba0fafd6ca3aa"
+};
 
-      } catch (error) {
+const app = initializeApp(firebaseConfig);
+const database = getDatabase(app);
 
-        alert("문제 시작에 실패했습니다.");
-        console.error(error);
 
+/* ------------------------------
+   샘플 문제
+-------------------------------- */
+
+const questions = [
+
+  {
+    type: "choice",
+    text: "탕수육을 먹을 때 당신의 선택은?",
+    options: ["부먹", "찍먹"],
+    correct: "찍먹",
+    explanation: "샘플 문제입니다. 정답은 찍먹으로 설정했습니다."
+  },
+
+  {
+    type: "ox",
+    text: "대한민국의 수도는 서울이다.",
+    options: ["O", "X"],
+    correct: "O",
+    explanation: "대한민국의 수도는 서울입니다."
+  },
+
+  {
+    type: "choice",
+    text: "다음 중 우리나라의 수도는 어디일까요?",
+    options: ["서울", "부산", "대전", "제주"],
+    correct: "서울",
+    explanation: "대한민국의 수도는 서울입니다."
+  },
+
+  {
+    type: "order",
+    text: "다음 숫자를 작은 수부터 순서대로 선택하세요.",
+    options: ["3", "1", "4", "2"],
+    correct: ["1", "2", "3", "4"],
+    explanation:
+      "작은 수부터 배열하면 1 → 2 → 3 → 4입니다."
+  }
+
+];
+
+
+let currentQuestion = -1;
+let currentAnswers = [];
+
+
+/* ------------------------------
+   문제 화면 표시
+-------------------------------- */
+
+function displayQuestion() {
+
+  const q = questions[currentQuestion];
+
+  document.getElementById("questionNumber").textContent =
+    "문제 " + (currentQuestion + 1) +
+    " / " + questions.length;
+
+  document.getElementById("questionText").textContent =
+    q.text;
+
+  const optionsDiv =
+    document.getElementById("options");
+
+  optionsDiv.innerHTML = "";
+
+  q.options.forEach((option, index) => {
+
+    const div = document.createElement("div");
+
+    div.className = "option";
+
+    div.textContent =
+      (index + 1) + ". " + option;
+
+    optionsDiv.appendChild(div);
+
+  });
+
+}
+
+
+/* ------------------------------
+   퀴즈 시작
+-------------------------------- */
+
+window.startQuiz = async function() {
+
+  currentQuestion = 0;
+
+  // 이전 테스트 답변 초기화
+  await remove(ref(database, "answers"));
+
+  await set(ref(database, "quizState"), {
+    status: "question",
+    question: 0,
+    revealed: false,
+    startedAt: Date.now()
+  });
+
+  displayQuestion();
+
+  document.getElementById("status").textContent =
+    "문제 진행 중";
+
+  document.getElementById("startButton").style.display =
+    "none";
+
+  document.getElementById("answerButton").style.display =
+    "inline-block";
+
+  document.getElementById("rankButton").style.display =
+    "none";
+
+  document.getElementById("nextButton").style.display =
+    "none";
+
+  document.getElementById("resultArea").style.display =
+    "none";
+
+  document.getElementById("ranking").style.display =
+    "none";
+
+};
+
+
+/* ------------------------------
+   정답 공개
+-------------------------------- */
+
+window.revealAnswer = async function() {
+
+  const q = questions[currentQuestion];
+
+  await set(ref(database, "quizState"), {
+    status: "result",
+    question: currentQuestion,
+    revealed: true
+  });
+
+  showResults(q);
+
+  document.getElementById("status").textContent =
+    "정답 공개";
+
+  document.getElementById("answerButton").style.display =
+    "none";
+
+  document.getElementById("rankButton").style.display =
+    "inline-block";
+
+  document.getElementById("nextButton").style.display =
+    "inline-block";
+
+};
+
+
+/* ------------------------------
+   결과 표시
+-------------------------------- */
+
+function showResults(q) {
+
+  document.getElementById("resultArea").style.display =
+    "block";
+
+  let correctText;
+
+  if (q.type === "order") {
+    correctText = q.correct.join(" → ");
+  } else {
+    correctText = q.correct;
+  }
+
+  document.getElementById("correctAnswer").textContent =
+    "정답 : " + correctText;
+
+  document.getElementById("explanation").textContent =
+    q.explanation;
+
+  const resultBars =
+    document.getElementById("resultBars");
+
+  resultBars.innerHTML = "";
+
+  const counts = {};
+
+  q.options.forEach(option => counts[option] = 0);
+
+  currentAnswers.forEach(data => {
+
+    if (q.type !== "order") {
+
+      if (counts[data.answer] !== undefined) {
+        counts[data.answer]++;
       }
 
-    };
+    }
+
+  });
+
+  const total = currentAnswers.length;
+
+  q.options.forEach(option => {
+
+    const count = counts[option] || 0;
+
+    const percent =
+      total === 0 ? 0 : (count / total) * 100;
+
+    const row = document.createElement("div");
+
+    row.className = "result-row";
+
+    row.innerHTML = `
+      <div class="result-label">
+        ${option} : ${count}명
+      </div>
+
+      <div class="bar-bg">
+        <div
+          class="bar"
+          style="width:${percent}%">
+        </div>
+      </div>
+    `;
+
+    resultBars.appendChild(row);
+
+  });
+
+}
 
 
-    // ----------------------------------
-    // 현재 진행 상태 실시간 확인
-    // ----------------------------------
+/* ------------------------------
+   순위 공개
+-------------------------------- */
 
-    const stateRef = ref(database, "quizState");
+window.showRanking = async function() {
 
-    onValue(stateRef, function(snapshot) {
+  const snapshot =
+    await get(ref(database, "answers"));
 
-      const state = snapshot.val();
+  const scores = {};
 
-      if (!state) {
-        document.getElementById("status").textContent =
-          "대기 중";
-        return;
-      }
+  snapshot.forEach(child => {
 
-      if (state.status === "question") {
-        document.getElementById("status").textContent =
-          state.question + "번 문제 진행 중";
-      }
+    const data = child.val();
 
-      if (state.status === "waiting") {
-        document.getElementById("status").textContent =
-          "대기 중";
-      }
+    if (!scores[data.nickname]) {
+      scores[data.nickname] = 0;
+    }
 
+    if (data.correct === true) {
+      scores[data.nickname] += 1000;
+    }
+
+  });
+
+
+  const sorted =
+    Object.entries(scores)
+      .sort((a,b) => b[1] - a[1]);
+
+
+  const list =
+    document.getElementById("rankingList");
+
+  list.innerHTML = "";
+
+
+  sorted.slice(0, 3).forEach((item, index) => {
+
+    const div =
+      document.createElement("div");
+
+    div.className = "rank-item";
+
+    const medal =
+      index === 0 ? "🥇" :
+      index === 1 ? "🥈" : "🥉";
+
+    div.textContent =
+      medal + " " +
+      item[0] + "  " +
+      item[1] + "점";
+
+    list.appendChild(div);
+
+  });
+
+
+  document.getElementById("ranking").style.display =
+    "block";
+
+};
+
+
+/* ------------------------------
+   다음 문제
+-------------------------------- */
+
+window.nextQuestion = async function() {
+
+  currentQuestion++;
+
+  if (currentQuestion >= questions.length) {
+
+    document.getElementById("status").textContent =
+      "퀴즈 종료";
+
+    document.getElementById("questionNumber").textContent =
+      "퀴즈 종료";
+
+    document.getElementById("questionText").textContent =
+      "수고하셨습니다!";
+
+    document.getElementById("options").innerHTML = "";
+
+    document.getElementById("resultArea").style.display =
+      "none";
+
+    document.getElementById("nextButton").style.display =
+      "none";
+
+    document.getElementById("rankButton").style.display =
+      "inline-block";
+
+    await set(ref(database, "quizState"), {
+      status: "finished"
     });
 
+    return;
+  }
 
-    // ----------------------------------
-    // 교육생 답변 실시간 집계
-    // ----------------------------------
 
-    const answersRef = ref(database, "answers");
+  await set(ref(database, "quizState"), {
+    status: "question",
+    question: currentQuestion,
+    revealed: false,
+    startedAt: Date.now()
+  });
 
-    onValue(answersRef, function(snapshot) {
 
-      let total = 0;
-      let pour = 0;
-      let dip = 0;
+  displayQuestion();
 
-      snapshot.forEach(function(childSnapshot) {
+  document.getElementById("status").textContent =
+    "문제 진행 중";
 
-        const data = childSnapshot.val();
+  document.getElementById("resultArea").style.display =
+    "none";
 
-        // 앞으로 여러 문제가 생기므로
-        // 1번 문제 답변만 집계
-        if (data.question !== 1) {
-          return;
-        }
+  document.getElementById("ranking").style.display =
+    "none";
 
-        total++;
+  document.getElementById("answerButton").style.display =
+    "inline-block";
 
-        if (data.answer === "부먹") {
-          pour++;
-        }
+  document.getElementById("rankButton").style.display =
+    "none";
 
-        if (data.answer === "찍먹") {
-          dip++;
-        }
+  document.getElementById("nextButton").style.display =
+    "none";
 
-      });
+};
 
-      document.getElementById("totalCount").textContent = total;
-      document.getElementById("pourCount").textContent = pour;
-      document.getElementById("dipCount").textContent = dip;
 
-    });
+/* ------------------------------
+   현재 문제 답변 실시간 수신
+-------------------------------- */
 
-  </script>
+onValue(ref(database, "answers"),
+(snapshot) => {
+
+  currentAnswers = [];
+
+  snapshot.forEach(child => {
+
+    const data = child.val();
+
+    if (
+      Number(data.question) ===
+      currentQuestion
+    ) {
+      currentAnswers.push(data);
+    }
+
+  });
+
+  document.getElementById("responseCount").textContent =
+    currentAnswers.length;
+
+});
+
+</script>
 
 </body>
 </html>
