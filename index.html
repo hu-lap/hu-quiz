@@ -6,9 +6,7 @@
   <title>HU Quiz</title>
 
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
@@ -85,24 +83,27 @@
       cursor: pointer;
     }
 
-    .answer1 {
-      background: #e74c3c;
-    }
-
-    .answer2 {
-      background: #3498db;
-    }
+    .answer1 { background: #e74c3c; }
+    .answer2 { background: #3498db; }
 
     .selected {
       outline: 8px solid #222;
       outline-offset: -8px;
+    }
+
+    .answer:disabled {
+      cursor: default;
+      opacity: 0.65;
+    }
+
+    .answer.selected:disabled {
+      opacity: 1;
     }
   </style>
 </head>
 
 <body>
 
-  <!-- 입장 화면 -->
   <div id="joinScreen" class="screen">
     <h1>HU Quiz</h1>
     <div class="subtitle">교육용 참여형 퀴즈</div>
@@ -119,7 +120,6 @@
   </div>
 
 
-  <!-- 퀴즈 화면 -->
   <div id="quizScreen">
 
     <div class="question">
@@ -130,26 +130,56 @@
 
       <button
         class="answer answer1"
-        onclick="selectAnswer(this, '부먹')">
+        onclick="selectAnswer(this, '부먹')"
+      >
         ①<br>부먹
       </button>
 
       <button
         class="answer answer2"
-        onclick="selectAnswer(this, '찍먹')">
+        onclick="selectAnswer(this, '찍먹')"
+      >
         ②<br>찍먹
       </button>
 
     </div>
-
   </div>
 
 
-  <script>
+  <script type="module">
 
-    function joinQuiz() {
+    import { initializeApp }
+      from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 
-      const nickname =
+    import {
+      getDatabase,
+      ref,
+      push,
+      set
+    } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
+
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAYszYNkItL6kfrpJ5An7Z_AgDVY4nmUbg",
+      authDomain: "hu-quiz.firebaseapp.com",
+      databaseURL: "https://hu-quiz-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "hu-quiz",
+      storageBucket: "hu-quiz.firebasestorage.app",
+      messagingSenderId: "344334242719",
+      appId: "1:344334242719:web:b87436d3cba0fafd6ca3aa"
+    };
+
+
+    const app = initializeApp(firebaseConfig);
+    const database = getDatabase(app);
+
+    let nickname = "";
+    let submitted = false;
+
+
+    window.joinQuiz = function () {
+
+      nickname =
         document.getElementById("nickname").value.trim();
 
       if (nickname === "") {
@@ -159,21 +189,51 @@
 
       document.getElementById("joinScreen").style.display = "none";
       document.getElementById("quizScreen").style.display = "block";
-    }
+    };
 
 
-    function selectAnswer(button, answer) {
+    window.selectAnswer = async function (button, answer) {
 
-      document
-        .querySelectorAll(".answer")
-        .forEach(btn => btn.classList.remove("selected"));
+      if (submitted) {
+        return;
+      }
+
+      submitted = true;
+
+      document.querySelectorAll(".answer")
+        .forEach(btn => btn.disabled = true);
 
       button.classList.add("selected");
 
-      setTimeout(function () {
-        alert(answer + "을 선택했습니다!");
-      }, 100);
-    }
+      try {
+
+        const answersRef =
+          ref(database, "answers");
+
+        const newAnswerRef =
+          push(answersRef);
+
+        await set(newAnswerRef, {
+          nickname: nickname,
+          answer: answer,
+          submittedAt: Date.now()
+        });
+
+        alert(nickname + "님, 답변이 제출되었습니다!");
+
+      } catch (error) {
+
+        submitted = false;
+
+        document.querySelectorAll(".answer")
+          .forEach(btn => btn.disabled = false);
+
+        button.classList.remove("selected");
+
+        alert("답변 전송에 실패했습니다.");
+        console.error(error);
+      }
+    };
 
   </script>
 
