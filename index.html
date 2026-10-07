@@ -25,7 +25,7 @@
 
     h1 {
       font-size: 42px;
-      margin-bottom: 10px;
+      margin: 0 0 10px;
     }
 
     .subtitle {
@@ -43,7 +43,7 @@
       border-radius: 12px;
     }
 
-    .join-button {
+    .main-button {
       width: 100%;
       max-width: 400px;
       margin: 0 auto;
@@ -57,21 +57,52 @@
       cursor: pointer;
     }
 
-    #quizScreen {
+    #waitingScreen,
+    #quizScreen,
+    #submittedScreen {
       display: none;
+    }
+
+    .waiting-box {
+      background: white;
+      max-width: 500px;
+      margin: 0 auto;
+      padding: 40px 25px;
+      border-radius: 20px;
+    }
+
+    .waiting-name {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 25px;
+    }
+
+    .waiting-message {
+      font-size: 20px;
+      color: #555;
+      line-height: 1.6;
+    }
+
+    #quizScreen {
       min-height: 100vh;
+      background: #f4f6f9;
+    }
+
+    .question-number {
+      padding-top: 25px;
+      font-size: 18px;
+      color: #777;
     }
 
     .question {
-      padding: 25px 15px;
-      font-size: 25px;
+      padding: 15px 20px 25px;
+      font-size: 28px;
       font-weight: bold;
-      background: white;
     }
 
     .answers {
       display: flex;
-      height: calc(100vh - 110px);
+      min-height: calc(100vh - 130px);
     }
 
     .answer {
@@ -86,24 +117,47 @@
     .answer1 { background: #e74c3c; }
     .answer2 { background: #3498db; }
 
-    .selected {
-      outline: 8px solid #222;
-      outline-offset: -8px;
-    }
-
     .answer:disabled {
       cursor: default;
-      opacity: 0.65;
+      opacity: 0.6;
     }
 
-    .answer.selected:disabled {
+    .answer.selected {
+      outline: 8px solid #222;
+      outline-offset: -8px;
       opacity: 1;
+    }
+
+    .submitted-box {
+      background: white;
+      max-width: 500px;
+      margin: 0 auto;
+      padding: 45px 25px;
+      border-radius: 20px;
+    }
+
+    .check {
+      font-size: 60px;
+      margin-bottom: 15px;
+    }
+
+    .submitted-title {
+      font-size: 28px;
+      font-weight: bold;
+      margin-bottom: 15px;
+    }
+
+    .submitted-message {
+      color: #666;
+      font-size: 18px;
+      line-height: 1.6;
     }
   </style>
 </head>
 
 <body>
 
+  <!-- 닉네임 입력 -->
   <div id="joinScreen" class="screen">
     <h1>HU Quiz</h1>
     <div class="subtitle">교육용 참여형 퀴즈</div>
@@ -114,13 +168,34 @@
       placeholder="닉네임을 입력하세요"
     >
 
-    <button class="join-button" onclick="joinQuiz()">
+    <button class="main-button" onclick="joinQuiz()">
       입장하기
     </button>
   </div>
 
 
+  <!-- 강사 시작 대기 -->
+  <div id="waitingScreen" class="screen">
+    <div class="waiting-box">
+
+      <div id="waitingName" class="waiting-name"></div>
+
+      <div class="waiting-message">
+        입장이 완료되었습니다.<br><br>
+        강사가 퀴즈를 시작할 때까지<br>
+        잠시 기다려 주세요.
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- 문제 화면 -->
   <div id="quizScreen">
+
+    <div class="question-number">
+      문제 1
+    </div>
 
     <div class="question">
       탕수육을 먹을 때 당신의 선택은?
@@ -143,6 +218,28 @@
       </button>
 
     </div>
+
+  </div>
+
+
+  <!-- 답변 제출 후 -->
+  <div id="submittedScreen" class="screen">
+
+    <div class="submitted-box">
+
+      <div class="check">✓</div>
+
+      <div class="submitted-title">
+        답변 제출 완료
+      </div>
+
+      <div class="submitted-message">
+        답변이 제출되었습니다.<br>
+        강사의 진행을 기다려 주세요.
+      </div>
+
+    </div>
+
   </div>
 
 
@@ -155,7 +252,8 @@
       getDatabase,
       ref,
       push,
-      set
+      set,
+      onValue
     } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
 
 
@@ -175,6 +273,24 @@
 
     let nickname = "";
     let submitted = false;
+    let joined = false;
+
+
+    function showScreen(screenId) {
+
+      document.getElementById("joinScreen").style.display = "none";
+      document.getElementById("waitingScreen").style.display = "none";
+      document.getElementById("quizScreen").style.display = "none";
+      document.getElementById("submittedScreen").style.display = "none";
+
+      const target = document.getElementById(screenId);
+
+      if (screenId === "quizScreen") {
+        target.style.display = "block";
+      } else {
+        target.style.display = "flex";
+      }
+    }
 
 
     window.joinQuiz = function () {
@@ -187,16 +303,18 @@
         return;
       }
 
-      document.getElementById("joinScreen").style.display = "none";
-      document.getElementById("quizScreen").style.display = "block";
+      joined = true;
+
+      document.getElementById("waitingName").textContent =
+        nickname + "님";
+
+      showScreen("waitingScreen");
     };
 
 
     window.selectAnswer = async function (button, answer) {
 
-      if (submitted) {
-        return;
-      }
+      if (submitted) return;
 
       submitted = true;
 
@@ -207,19 +325,19 @@
 
       try {
 
-        const answersRef =
-          ref(database, "answers");
-
-        const newAnswerRef =
-          push(answersRef);
+        const answersRef = ref(database, "answers");
+        const newAnswerRef = push(answersRef);
 
         await set(newAnswerRef, {
           nickname: nickname,
+          question: 1,
           answer: answer,
           submittedAt: Date.now()
         });
 
-        alert(nickname + "님, 답변이 제출되었습니다!");
+        setTimeout(function () {
+          showScreen("submittedScreen");
+        }, 500);
 
       } catch (error) {
 
@@ -234,6 +352,41 @@
         console.error(error);
       }
     };
+
+
+    /*
+      Firebase의 quizState를 계속 감시한다.
+
+      waiting = 대기
+      question = 문제 표시
+    */
+
+    const stateRef = ref(database, "quizState");
+
+    onValue(stateRef, function(snapshot) {
+
+      if (!joined) return;
+
+      const state = snapshot.val();
+
+      if (!state) {
+        showScreen("waitingScreen");
+        return;
+      }
+
+      if (state.status === "waiting") {
+        showScreen("waitingScreen");
+      }
+
+      if (state.status === "question") {
+
+        if (!submitted) {
+          showScreen("quizScreen");
+        }
+
+      }
+
+    });
 
   </script>
 
