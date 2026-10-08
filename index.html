@@ -197,6 +197,52 @@ input {
 }
 
 
+/* 제한시간 */
+.timer-wrap {
+  max-width: 650px;
+  margin: 0 auto 18px;
+  text-align: center;
+}
+
+.timer-label {
+  font-size: 15px;
+  color: #777;
+  margin-bottom: 6px;
+}
+
+.timer-value {
+  font-size: 34px;
+  font-weight: bold;
+}
+
+.timer-bar-bg {
+  width: 100%;
+  height: 10px;
+  margin-top: 8px;
+  background: #ddd;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.timer-bar {
+  height: 100%;
+  width: 100%;
+  background: #222;
+  transition: width 0.1s linear;
+}
+
+.time-over {
+  margin: 16px auto 0;
+  max-width: 650px;
+  padding: 14px;
+  border-radius: 12px;
+  background: #fff3cd;
+  color: #6b5700;
+  font-weight: bold;
+  display: none;
+}
+
+
 /* 결과 */
 
 .result-symbol {
@@ -282,6 +328,18 @@ input {
   <div
     id="questionNumber"
     class="question-number">
+  </div>
+
+  <div id="timerWrap" class="timer-wrap">
+    <div class="timer-label">남은 시간</div>
+    <div id="timerValue" class="timer-value">--</div>
+    <div class="timer-bar-bg">
+      <div id="timerBar" class="timer-bar"></div>
+    </div>
+  </div>
+
+  <div id="timeOverMessage" class="time-over">
+    ⏰ 제한시간이 종료되었습니다.
   </div>
 
   <div
@@ -424,9 +482,13 @@ import {
   ref,
   push,
   set,
-  onValue
+  onValue,
+  serverTimestamp
 }
 from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
+
+import { getAuth, signInAnonymously, onAuthStateChanged }
+from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
 
 const firebaseConfig = {
@@ -457,6 +519,19 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
+const auth = getAuth(app);
+let studentAuthReady = null;
+const authReady = new Promise(resolve => { studentAuthReady = resolve; });
+onAuthStateChanged(auth, async user => {
+  if (user) { studentAuthReady(user); return; }
+  try {
+    const credential = await signInAnonymously(auth);
+    studentAuthReady(credential.user);
+  } catch (error) {
+    console.error("익명 인증 실패:", error);
+    studentAuthReady(null);
+  }
+});
 
 
 
@@ -549,6 +624,34 @@ let myAnswer = null;
 
 let orderSelection = [];
 
+let participantId = "";
+
+let questionStartedAt = null;
+
+let questionDurationSec = 10;
+
+let timerInterval = null;
+
+let timeExpired = false;
+
+let serverTimeOffset = 0;
+
+
+
+/* ------------------------
+   Firebase 서버시간 보정
+------------------------- */
+
+onValue(
+  ref(database, ".info/serverTimeOffset"),
+  snapshot => {
+    serverTimeOffset = Number(snapshot.val()) || 0;
+  }
+);
+
+function serverNow() {
+  return Date.now() + serverTimeOffset;
+}
 
 
 /* ------------------------
@@ -613,6 +716,11 @@ window.joinQuiz = async function() {
 
 
   try {
+    const studentUser = await authReady;
+    if (!studentUser || studentUser.isAnonymous !== true) {
+      alert("교육생 인증에 실패했습니다. 페이지를 새로고침한 뒤 다시 시도해주세요.");
+      return;
+    }
 
     // Firebase에 참가자 등록
     const newParticipantRef =
@@ -621,11 +729,16 @@ window.joinQuiz = async function() {
       );
 
 
+    participantId =
+      newParticipantRef.key;
+
+
     await set(
       newParticipantRef,
       {
         nickname: nickname,
-        joinedAt: Date.now()
+        ownerUid: studentUser.uid,
+        joinedAt: serverTimestamp()
       }
     );
 
@@ -653,10 +766,156 @@ window.joinQuiz = async function() {
 
 
 /* ------------------------
+   제한시간
+------------------------- */
+
+function stopTimer() {
+
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+
+}
+
+
+function lockAnswerInput() {
+
+  document.querySelectorAll(".answer")
+    .forEach(btn => {
+      btn.disabled = true;
+    });
+
+  const submitButton =
+    document.querySelector(".submit-button");
+
+  const resetButton =
+    document.querySelector(".reset-button");
+
+  if (submitButton) {
+    submitButton.disabled = true;
+  }
+
+  if (resetButton) {
+    resetButton.disabled = true;
+  }
+
+}
+
+
+function expireQuestion() {
+
+  if (timeExpired) return;
+
+  timeExpired = true;
+
+  stopTimer();
+
+  document.getElementById("timerValue")
+    .textContent = "0.0초";
+
+  document.getElementById("timerBar")
+    .style.width = "0%";
+
+  document.getElementById("timeOverMessage")
+    .style.display = "block";
+
+  if (
+    submittedQuestion !==
+    currentQuestion
+  ) {
+    lockAnswerInput();
+  }
+
+}
+
+
+function startTimer(startedAt, durationSec) {
+
+  stopTimer();
+
+  questionStartedAt =
+    Number(startedAt);
+
+  questionDurationSec =
+    Number(durationSec) || 10;
+
+  timeExpired = false;
+
+  document.getElementById("timeOverMessage")
+    .style.display = "none";
+
+  const submitButton =
+    document.querySelector(".submit-button");
+
+  const resetButton =
+    document.querySelector(".reset-button");
+
+  if (submitButton) {
+    submitButton.disabled = false;
+  }
+
+  if (resetButton) {
+    resetButton.disabled = false;
+  }
+
+
+  const update = () => {
+
+    if (!questionStartedAt) {
+      return;
+    }
+
+    const elapsedMs =
+      serverNow() - questionStartedAt;
+
+    const totalMs =
+      questionDurationSec * 1000;
+
+    const remainingMs =
+      Math.max(0, totalMs - elapsedMs);
+
+    const remainingSec =
+      remainingMs / 1000;
+
+    document.getElementById("timerValue")
+      .textContent =
+      remainingSec.toFixed(1) + "초";
+
+    const percent =
+      Math.max(
+        0,
+        Math.min(
+          100,
+          (remainingMs / totalMs) * 100
+        )
+      );
+
+    document.getElementById("timerBar")
+      .style.width =
+      percent + "%";
+
+
+    if (remainingMs <= 0) {
+      expireQuestion();
+    }
+
+  };
+
+
+  update();
+
+  timerInterval =
+    setInterval(update, 100);
+
+}
+
+
+/* ------------------------
    문제 표시
 ------------------------- */
 
-function displayQuestion(questionIndex) {
+function displayQuestion(questionIndex, state) {
 
   currentQuestion = questionIndex;
 
@@ -665,6 +924,11 @@ function displayQuestion(questionIndex) {
   myAnswer = null;
 
   orderSelection = [];
+
+  timeExpired = false;
+
+  document.getElementById("timeOverMessage")
+    .style.display = "none";
 
 
   const q =
@@ -760,6 +1024,22 @@ function displayQuestion(questionIndex) {
 
   showScreen("quizScreen");
 
+
+  const durationSec =
+    state && state.durationSec
+      ? Number(state.durationSec)
+      : 10;
+
+  const startedAt =
+    state && state.startedAt
+      ? Number(state.startedAt)
+      : serverNow();
+
+  startTimer(
+    startedAt,
+    durationSec
+  );
+
 }
 
 
@@ -775,7 +1055,8 @@ async function submitChoice(
 
   if (
     submittedQuestion ===
-    currentQuestion
+    currentQuestion ||
+    timeExpired
   ) return;
 
 
@@ -810,7 +1091,8 @@ function selectOrder(
 
   if (
     submittedQuestion ===
-    currentQuestion
+    currentQuestion ||
+    timeExpired
   ) return;
 
 
@@ -859,7 +1141,8 @@ window.resetOrder = function() {
 
   if (
     submittedQuestion ===
-    currentQuestion
+    currentQuestion ||
+    timeExpired
   ) return;
 
 
@@ -883,6 +1166,10 @@ window.resetOrder = function() {
 
 
 window.submitOrder = async function() {
+
+  if (timeExpired) {
+    return;
+  }
 
   const q =
     questions[currentQuestion];
@@ -926,38 +1213,27 @@ window.submitOrder = async function() {
 
 async function saveAnswer(answer) {
 
+  if (timeExpired) {
+    return;
+  }
+
   const q =
     questions[currentQuestion];
 
 
-  let correct = false;
-
-
-  if (q.type === "order") {
-
-    correct =
-      JSON.stringify(answer) ===
-      JSON.stringify(q.correct);
-
-  } else {
-
-    correct =
-      answer === q.correct;
-
-  }
-
-
-  const newAnswerRef =
-    push(
-      ref(database, "answers")
-    );
-
+  // 문제 번호 + 참가자 ID를 고정 키로 사용해 중복 답변을 구분합니다.
+  // 서버 보안규칙에서 기존 키의 덮어쓰기를 금지해야 최종적으로 보호됩니다.
+  const answerRef = ref(database, "answers/" + currentQuestion + "_" + participantId);
 
   try {
 
     await set(
-      newAnswerRef,
+      answerRef,
       {
+
+        participantId:
+          participantId,
+        ownerUid: auth.currentUser?.uid || "",
 
         nickname:
           nickname,
@@ -968,11 +1244,8 @@ async function saveAnswer(answer) {
         answer:
           answer,
 
-        correct:
-          correct,
-
         submittedAt:
-          Date.now()
+          serverTimestamp()
 
       }
     );
@@ -980,6 +1253,8 @@ async function saveAnswer(answer) {
 
     submittedQuestion =
       currentQuestion;
+
+    stopTimer();
 
 
     showScreen(
@@ -1006,6 +1281,8 @@ async function saveAnswer(answer) {
 ------------------------- */
 
 function showResult() {
+
+  stopTimer();
 
   const q =
     questions[currentQuestion];
@@ -1150,7 +1427,19 @@ onValue(
       ) {
 
         displayQuestion(
-          newQuestion
+          newQuestion,
+          state
+        );
+
+      } else if (
+        !timerInterval &&
+        submittedQuestion !== currentQuestion &&
+        !timeExpired
+      ) {
+
+        startTimer(
+          state.startedAt,
+          state.durationSec || 10
         );
 
       }
@@ -1179,6 +1468,8 @@ onValue(
       "waiting"
     ) {
 
+      stopTimer();
+
       showScreen(
         "waitingScreen"
       );
@@ -1190,6 +1481,8 @@ onValue(
       state.status ===
       "finished"
     ) {
+
+      stopTimer();
 
       showScreen(
         "finishedScreen"
