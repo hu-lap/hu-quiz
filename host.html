@@ -233,6 +233,90 @@ body {
 }
 
 /* ==============================
+   제한시간 / 문제 순위
+============================== */
+
+.timer-panel {
+  max-width: 760px;
+  margin: 18px auto 10px;
+  padding: 16px 20px;
+  background: white;
+  border-radius: 14px;
+}
+
+.timer-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+
+.timer-title {
+  color: #666;
+  font-size: 17px;
+}
+
+.timer-value {
+  font-size: 36px;
+  font-weight: bold;
+}
+
+.timer-bar-bg {
+  width: 100%;
+  height: 12px;
+  margin-top: 10px;
+  background: #ddd;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.timer-bar {
+  width: 100%;
+  height: 100%;
+  background: #222;
+  transition: width 0.1s linear;
+}
+
+.question-meta {
+  margin-top: 8px;
+  color: #666;
+  font-size: 17px;
+}
+
+.important-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #fff1b8;
+  color: #6b5200;
+  font-weight: bold;
+}
+
+.rank-item.top3 {
+  font-size: 26px;
+  font-weight: bold;
+  padding: 16px 12px;
+}
+
+.rank-item.lower {
+  font-size: 19px;
+  color: #555;
+  padding: 9px 12px;
+}
+
+.rank-close {
+  margin-top: 18px;
+  padding: 11px 18px;
+  font-size: 16px;
+  background: #eee;
+  border: 1px solid #ccc;
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+
+/* ==============================
    정상 진행 조작부
 ============================== */
 
@@ -275,10 +359,25 @@ button {
   margin: 40px 0 20px;
 }
 
+
+/* 관리자 인증 전 강사 화면을 숨김 */
+body:not(.admin-ready) .container { display:none; }
+#authGate { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
+body.admin-ready #authGate { display:none; }
+.auth-card { width:100%; max-width:410px; background:white; border-radius:20px; padding:34px; text-align:center; box-shadow:0 8px 32px #0001; }
+.auth-card input { width:100%; padding:15px; border:1px solid #bbb; border-radius:10px; font-size:19px; margin:16px 0; }
+.auth-card button { width:100%; background:#222; color:white; }
+#authError { color:#a32222; min-height:26px; font-size:14px; }
 </style>
 </head>
 
 <body>
+<div id="authGate"><div class="auth-card">
+<h1>🔐 HU Quiz 관리자</h1>
+<p>관리자 비밀번호를 입력하세요.</p>
+<form id="authForm"><input id="adminPassword" type="password" autocomplete="current-password" required placeholder="관리자 비밀번호"><button id="authButton" type="submit">로그인</button></form>
+<div id="authError" role="alert"></div>
+</div></div>
 
 <div class="container">
 
@@ -314,6 +413,7 @@ button {
       <div class="management-title">
         퀴즈 관리
       </div>
+      <button id="logoutButton" class="reset-button" style="margin-bottom:12px" type="button">관리자 로그아웃</button>
 
       <button
         id="resetButton"
@@ -417,6 +517,18 @@ button {
       준비가 완료되면 퀴즈를 시작하세요.
     </div>
 
+    <div id="questionMeta" class="question-meta"></div>
+
+    <div id="timerPanel" class="timer-panel">
+      <div class="timer-top">
+        <div class="timer-title">남은 시간</div>
+        <div id="timerValue" class="timer-value">--</div>
+      </div>
+      <div class="timer-bar-bg">
+        <div id="timerBar" class="timer-bar"></div>
+      </div>
+    </div>
+
     <div
       id="options"
       class="options">
@@ -473,6 +585,14 @@ button {
     <div id="rankingList">
     </div>
 
+    <button
+      id="rankCloseButton"
+      class="rank-close"
+      onclick="closeRanking()"
+      style="display:none;">
+      순위 닫기
+    </button>
+
   </div>
 
 
@@ -502,7 +622,7 @@ button {
       class="secondary"
       onclick="showRanking()"
       style="display:none;">
-      순위 공개
+      이번 문제 순위 공개
     </button>
 
     <button
@@ -529,9 +649,15 @@ import {
   set,
   get,
   onValue,
-  remove
+  remove,
+  update,
+  serverTimestamp
 }
 from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
+
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut }
+from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+
 
 
 /* ==============================
@@ -569,6 +695,42 @@ const app =
 
 const database =
   getDatabase(app);
+const auth = getAuth(app);
+const ADMIN_EMAIL = "admin@hu-lab.com";
+const ADMIN_UID = "sx4AGkO3lobofS46Oz5CiTw6xuA3";
+let adminAuthenticated = false;
+
+const authForm = document.getElementById("authForm");
+authForm.addEventListener("submit", async event => {
+  event.preventDefault();
+  const button = document.getElementById("authButton");
+  const error = document.getElementById("authError");
+  button.disabled = true;
+  error.textContent = "";
+  try {
+    const result = await signInWithEmailAndPassword(auth, ADMIN_EMAIL, document.getElementById("adminPassword").value);
+    if (result.user.uid !== ADMIN_UID) {
+      await signOut(auth);
+      throw new Error("관리자 계정이 아닙니다.");
+    }
+    document.getElementById("adminPassword").value = "";
+  } catch (e) {
+    error.textContent = "로그인 실패: 비밀번호 또는 관리자 권한을 확인하세요.";
+    console.error(e);
+  } finally { button.disabled = false; }
+});
+
+onAuthStateChanged(auth, async user => {
+  adminAuthenticated = Boolean(user && user.uid === ADMIN_UID);
+  document.body.classList.toggle("admin-ready", adminAuthenticated);
+  if (user && !adminAuthenticated) await signOut(auth);
+});
+
+document.getElementById("logoutButton").addEventListener("click", async () => {
+  if (!adminAuthenticated) return;
+  document.getElementById("managementPanel").style.display = "none";
+  await signOut(auth);
+});
 
 
 /* ==============================
@@ -583,7 +745,9 @@ const questions = [
     options: ["부먹", "찍먹"],
     correct: "찍먹",
     explanation:
-      "샘플 문제입니다. 정답은 찍먹으로 설정했습니다."
+      "샘플 문제입니다. 정답은 찍먹으로 설정했습니다.",
+    durationSec: 10,
+    points: 1000
   },
 
   {
@@ -592,7 +756,9 @@ const questions = [
     options: ["O", "X"],
     correct: "O",
     explanation:
-      "대한민국의 수도는 서울입니다."
+      "대한민국의 수도는 서울입니다.",
+    durationSec: 10,
+    points: 1000
   },
 
   {
@@ -601,7 +767,9 @@ const questions = [
     options: ["서울", "부산", "대전", "제주"],
     correct: "서울",
     explanation:
-      "대한민국의 수도는 서울입니다."
+      "대한민국의 수도는 서울입니다.",
+    durationSec: 20,
+    points: 2000
   },
 
   {
@@ -610,7 +778,9 @@ const questions = [
     options: ["3", "1", "4", "2"],
     correct: ["1", "2", "3", "4"],
     explanation:
-      "작은 수부터 배열하면 1 → 2 → 3 → 4입니다."
+      "작은 수부터 배열하면 1 → 2 → 3 → 4입니다.",
+    durationSec: 20,
+    points: 1000
   }
 
 ];
@@ -631,12 +801,88 @@ let currentQuestion = -1;
 
 let currentAnswers = [];
 
+let questionStartedAt = 0;
+
+let timerInterval = null;
+
+let serverTimeOffset = 0;
+
+let questionScores = [];
+
+
+/* ==============================
+   Firebase 서버시간 / 타이머
+============================== */
+
+onValue(
+  ref(database, ".info/serverTimeOffset"),
+  snapshot => {
+    serverTimeOffset = Number(snapshot.val()) || 0;
+  }
+);
+
+function serverNow() {
+  return Date.now() + serverTimeOffset;
+}
+
+function stopTimer() {
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+}
+
+function startHostTimer(startedAt, durationSec) {
+
+  stopTimer();
+
+  questionStartedAt = Number(startedAt);
+
+  const totalMs =
+    Number(durationSec) * 1000;
+
+  const updateTimer = () => {
+
+    const remainingMs =
+      Math.max(
+        0,
+        totalMs - (serverNow() - questionStartedAt)
+      );
+
+    document.getElementById("timerValue")
+      .textContent =
+      (remainingMs / 1000).toFixed(1) + "초";
+
+    document.getElementById("timerBar")
+      .style.width =
+      Math.max(
+        0,
+        Math.min(100, remainingMs / totalMs * 100)
+      ) + "%";
+
+    if (remainingMs <= 0) {
+      stopTimer();
+
+      document.getElementById("status")
+        .textContent = "응답시간 종료";
+    }
+
+  };
+
+  updateTimer();
+
+  timerInterval =
+    setInterval(updateTimer, 100);
+
+}
+
 
 /* ==============================
    관리 메뉴
 ============================== */
 
 window.toggleManagement = function() {
+  if (!adminAuthenticated) { alert("관리자 로그인이 필요합니다."); return; }
 
   const panel =
     document.getElementById("managementPanel");
@@ -702,6 +948,7 @@ function updateManagementState() {
 ============================== */
 
 window.resetQuiz = async function() {
+  if (!adminAuthenticated) { alert("관리자 로그인이 필요합니다."); return; }
 
   /*
     UI 비활성화 외에도
@@ -753,6 +1000,12 @@ window.resetQuiz = async function() {
       ref(database, "answers")
     );
 
+    await remove(
+      ref(database, "questionScores")
+    );
+
+    stopTimer();
+
 
     await set(
       ref(database, "quizState"),
@@ -788,6 +1041,14 @@ window.resetQuiz = async function() {
     document.getElementById("questionArea")
       .style.display =
       "none";
+
+    document.getElementById("timerPanel")
+      .style.display =
+      "block";
+
+    document.getElementById("questionMeta")
+      .style.display =
+      "block";
 
 
     document.getElementById("resultArea")
@@ -869,6 +1130,21 @@ function displayQuestion() {
     q.text;
 
 
+  const important =
+    Number(q.points) === 2000;
+
+  document.getElementById("questionMeta")
+    .innerHTML =
+    "제한시간 " +
+    q.durationSec +
+    "초 · 최고 " +
+    q.points +
+    "점" +
+    (important
+      ? '<span class="important-badge">⭐ 중요문제 · 2배 점수</span>'
+      : "");
+
+
   const optionsDiv =
     document.getElementById("options");
 
@@ -903,6 +1179,7 @@ function displayQuestion() {
 ============================== */
 
 window.startQuiz = async function() {
+  if (!adminAuthenticated) { alert("관리자 로그인이 필요합니다."); return; }
 
   /*
     참가자가 한 명도 없을 때
@@ -960,6 +1237,17 @@ window.startQuiz = async function() {
     ref(database, "answers")
   );
 
+  await remove(
+    ref(database, "questionScores")
+  );
+
+
+  const startedAt =
+    serverNow();
+
+  const durationSec =
+    questions[0].durationSec;
+
 
   await set(
     ref(database, "quizState"),
@@ -967,12 +1255,18 @@ window.startQuiz = async function() {
       status: "question",
       question: 0,
       revealed: false,
-      startedAt: Date.now()
+      startedAt: startedAt,
+      durationSec: durationSec
     }
   );
 
 
   displayQuestion();
+
+  startHostTimer(
+    startedAt,
+    durationSec
+  );
 
 
   document.getElementById("status")
@@ -1020,14 +1314,126 @@ window.startQuiz = async function() {
 ============================== */
 
 window.revealAnswer = async function() {
+  if (!adminAuthenticated) { alert("관리자 로그인이 필요합니다."); return; }
 
   if (quizMode !== "question") {
     return;
   }
 
-
   const q =
     questions[currentQuestion];
+
+  stopTimer();
+
+  /*
+    점수 계산 기준:
+    - 오답 0점
+    - 정답만 점수 부여
+    - 문제 시작부터 제한시간까지 선형 감소
+    - 일반문제 최고 1000점
+    - 중요문제 최고 2000점
+  */
+
+  const totalMs =
+    Number(q.durationSec) * 1000;
+
+  const correctAnswers =
+    currentAnswers
+       .filter(data => {
+        if (Number(data.question) !== currentQuestion) return false;
+        const submittedAt = Number(data.submittedAt);
+        if (!Number.isFinite(submittedAt) || submittedAt < questionStartedAt ||
+            submittedAt > questionStartedAt + Number(q.durationSec) * 1000) return false;
+        return q.type === "order"
+          ? JSON.stringify(data.answer) === JSON.stringify(q.correct)
+          : data.answer === q.correct;
+      })
+      .map(data => {
+
+        const submittedAt =
+          Number(data.submittedAt);
+
+        const elapsedMs =
+          Math.max(
+            0,
+            submittedAt - questionStartedAt
+          );
+
+        const remainingRatio =
+          Math.max(
+            0,
+            Math.min(
+              1,
+              (totalMs - elapsedMs) / totalMs
+            )
+          );
+
+        const score =
+          Math.round(
+            Number(q.points) * remainingRatio
+          );
+
+        return {
+          participantId:
+            data.participantId || data.nickname,
+          nickname:
+            data.nickname,
+          submittedAt:
+            submittedAt,
+          elapsedMs:
+            elapsedMs,
+          score:
+            score
+        };
+
+      })
+      .sort((a,b) => {
+
+        if (b.score !== a.score) {
+          return b.score - a.score;
+        }
+
+        return a.submittedAt - b.submittedAt;
+
+      });
+
+
+  const scoreObject = {};
+
+  correctAnswers.forEach(item => {
+
+    const key =
+      String(item.participantId);
+
+    scoreObject[key] = {
+      participantId:
+        item.participantId,
+      nickname:
+        item.nickname,
+      question:
+        currentQuestion,
+      score:
+        item.score,
+      submittedAt:
+        item.submittedAt,
+      elapsedMs:
+        item.elapsedMs
+    };
+
+  });
+
+
+  await set(
+    ref(
+      database,
+      "questionScores/" + currentQuestion
+    ),
+    scoreObject
+  );
+
+
+  questionScores =
+    correctAnswers;
 
 
   quizMode =
@@ -1039,7 +1445,10 @@ window.revealAnswer = async function() {
     {
       status: "result",
       question: currentQuestion,
-      revealed: true
+      revealed: true,
+      durationSec: q.durationSec,
+      points: q.points,
+      startedAt: questionStartedAt
     }
   );
 
@@ -1289,104 +1698,180 @@ function showResults(q) {
 ============================== */
 
 window.showRanking = async function() {
-
-  const snapshot =
-    await get(
-      ref(database, "answers")
-    );
-
-
-  const scores = {};
-
-
-  snapshot.forEach(child => {
-
-    const data =
-      child.val();
-
-
-    if (!scores[data.nickname]) {
-
-      scores[data.nickname] = 0;
-
-    }
-
-
-    if (data.correct === true) {
-
-      scores[data.nickname] += 1000;
-
-    }
-
-  });
-
-
-  const sorted =
-    Object.entries(scores)
-      .sort(
-        (a,b) =>
-          b[1] - a[1]
-      );
-
+  if (!adminAuthenticated) { alert("관리자 로그인이 필요합니다."); return; }
 
   const list =
-    document.getElementById(
-      "rankingList"
-    );
-
+    document.getElementById("rankingList");
 
   list.innerHTML = "";
 
 
-  if (sorted.length === 0) {
+  /* 퀴즈 종료 후에는 누적 최종 순위 */
+  if (quizMode === "finished") {
 
-    list.innerHTML =
-      "<div class='rank-item'>아직 순위 데이터가 없습니다.</div>";
+    const snapshot =
+      await get(
+        ref(database, "questionScores")
+      );
+
+    const totals = {};
+
+    snapshot.forEach(questionChild => {
+
+      questionChild.forEach(scoreChild => {
+
+        const data =
+          scoreChild.val();
+
+        const id =
+          data.participantId ||
+          data.nickname;
+
+        if (!totals[id]) {
+          totals[id] = {
+            nickname: data.nickname,
+            score: 0
+          };
+        }
+
+        totals[id].score +=
+          Number(data.score) || 0;
+
+      });
+
+    });
+
+
+    const sorted =
+      Object.values(totals)
+        .sort((a,b) => b.score - a.score);
+
+
+    document.getElementById("rankingTitle")
+      .textContent =
+      "🏆 HU Quiz 최종 결과";
+
+
+    if (sorted.length === 0) {
+
+      list.innerHTML =
+        "<div class='rank-item'>점수 데이터가 없습니다.</div>";
+
+    } else {
+
+      sorted.slice(0,3)
+        .forEach((item,index) => {
+
+          const div =
+            document.createElement("div");
+
+          div.className =
+            "rank-item top3";
+
+          const medal =
+            index === 0 ? "🥇" :
+            index === 1 ? "🥈" : "🥉";
+
+          div.textContent =
+            medal +
+            " " +
+            item.nickname +
+            "  " +
+            item.score +
+            "점";
+
+          list.appendChild(div);
+
+        });
+
+    }
+
+    document.getElementById("rankCloseButton")
+      .style.display =
+      "none";
+
+  } else {
+
+    /* 진행 중에는 현재 문제 순위만 */
+    const snapshot =
+      await get(
+        ref(
+          database,
+          "questionScores/" + currentQuestion
+        )
+      );
+
+    const rows = [];
+
+    snapshot.forEach(child => {
+      rows.push(child.val());
+    });
+
+    rows.sort((a,b) => {
+
+      if (
+        Number(b.score) !==
+        Number(a.score)
+      ) {
+        return Number(b.score) -
+               Number(a.score);
+      }
+
+      return Number(a.submittedAt) -
+             Number(b.submittedAt);
+
+    });
+
+
+    document.getElementById("rankingTitle")
+      .textContent =
+      "⚡ 이번 문제 순위";
+
+
+    if (rows.length === 0) {
+
+      list.innerHTML =
+        "<div class='rank-item'>정답자가 없습니다.</div>";
+
+    } else {
+
+      rows.slice(0,6)
+        .forEach((item,index) => {
+
+          const div =
+            document.createElement("div");
+
+          div.className =
+            index < 3
+              ? "rank-item top3"
+              : "rank-item lower";
+
+          const prefix =
+            index === 0 ? "🥇" :
+            index === 1 ? "🥈" :
+            index === 2 ? "🥉" :
+            (index + 1) + "위";
+
+          div.textContent =
+            prefix +
+            " " +
+            item.nickname +
+            "  " +
+            item.score +
+            "점";
+
+          list.appendChild(div);
+
+        });
+
+    }
+
+
+    document.getElementById("rankCloseButton")
+      .style.display =
+      "inline-block";
 
   }
-
-
-  sorted
-    .slice(0,3)
-    .forEach(
-      (item,index) => {
-
-        const div =
-          document.createElement("div");
-
-
-        div.className =
-          "rank-item";
-
-
-        const medal =
-          index === 0
-            ? "🥇"
-            : index === 1
-              ? "🥈"
-              : "🥉";
-
-
-        div.textContent =
-          medal +
-          " " +
-          item[0] +
-          "  " +
-          item[1] +
-          "점";
-
-
-        list.appendChild(div);
-
-      }
-    );
-
-
-  document.getElementById("rankingTitle")
-    .textContent =
-    quizMode === "finished"
-      ? "🏆 최종 순위"
-      : "현재 순위";
 
 
   document.getElementById("ranking")
@@ -1396,11 +1881,26 @@ window.showRanking = async function() {
 };
 
 
+window.closeRanking = function() {
+  if (!adminAuthenticated) { alert("관리자 로그인이 필요합니다."); return; }
+
+  if (quizMode !== "result") {
+    return;
+  }
+
+  document.getElementById("ranking")
+    .style.display =
+    "none";
+
+};
+
+
 /* ==============================
    다음 문제
 ============================== */
 
 window.nextQuestion = async function() {
+  if (!adminAuthenticated) { alert("관리자 로그인이 필요합니다."); return; }
 
   if (quizMode !== "result") {
     return;
@@ -1445,6 +1945,14 @@ window.nextQuestion = async function() {
       .style.display =
       "none";
 
+    document.getElementById("timerPanel")
+      .style.display =
+      "none";
+
+    document.getElementById("questionMeta")
+      .style.display =
+      "none";
+
 
     document.getElementById("resultArea")
       .style.display =
@@ -1463,7 +1971,7 @@ window.nextQuestion = async function() {
 
     document.getElementById("rankButton")
       .style.display =
-      "inline-block";
+      "none";
 
 
     await set(
@@ -1498,6 +2006,15 @@ window.nextQuestion = async function() {
 
   currentAnswers = [];
 
+  questionScores = [];
+
+
+  const startedAt =
+    serverNow();
+
+  const durationSec =
+    questions[currentQuestion].durationSec;
+
 
   await set(
     ref(database, "quizState"),
@@ -1505,12 +2022,18 @@ window.nextQuestion = async function() {
       status: "question",
       question: currentQuestion,
       revealed: false,
-      startedAt: Date.now()
+      startedAt: startedAt,
+      durationSec: durationSec
     }
   );
 
 
   displayQuestion();
+
+  startHostTimer(
+    startedAt,
+    durationSec
+  );
 
 
   document.getElementById("status")
@@ -1519,6 +2042,14 @@ window.nextQuestion = async function() {
 
 
   document.getElementById("responseArea")
+    .style.display =
+    "block";
+
+  document.getElementById("timerPanel")
+    .style.display =
+    "block";
+
+  document.getElementById("questionMeta")
     .style.display =
     "block";
 
