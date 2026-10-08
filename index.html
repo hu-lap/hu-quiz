@@ -483,7 +483,8 @@ import {
   push,
   set,
   onValue,
-  serverTimestamp
+  serverTimestamp,
+  get
 }
 from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
 
@@ -635,6 +636,55 @@ let timerInterval = null;
 let timeExpired = false;
 
 let serverTimeOffset = 0;
+let latestQuizState = null;
+let answerSaving = false;
+const participantStorageKey = "huQuizParticipant_v2";
+
+function storeParticipant() {
+  sessionStorage.setItem(participantStorageKey, JSON.stringify({
+    participantId, nickname, ownerUid: auth.currentUser?.uid || ""
+  }));
+}
+
+function rememberAnswer(questionNumber, answer) {
+  sessionStorage.setItem("huQuizAnswer_" + participantId + "_" + questionNumber,
+    JSON.stringify(answer));
+}
+
+function restoreAnswer(questionNumber) {
+  const saved = sessionStorage.getItem("huQuizAnswer_" + participantId + "_" + questionNumber);
+  if (saved === null) return false;
+  try {
+    myAnswer = JSON.parse(saved);
+    submittedQuestion = questionNumber;
+    return true;
+  } catch (e) { return false; }
+}
+
+async function restoreParticipant() {
+  const user = await authReady;
+  if (!user || !user.isAnonymous) return;
+  let saved;
+  try { saved = JSON.parse(sessionStorage.getItem(participantStorageKey) || "null"); }
+  catch (e) { return; }
+  if (!saved || !saved.participantId || saved.ownerUid !== user.uid) return;
+  try {
+    const snap = await get(ref(database, "participants/" + saved.participantId));
+    const record = snap.val();
+    if (!record || record.ownerUid !== user.uid) {
+      sessionStorage.removeItem(participantStorageKey);
+      return;
+    }
+    participantId = saved.participantId;
+    nickname = record.nickname;
+    joined = true;
+    document.getElementById("waitingName").textContent = nickname + "님";
+    applyQuizState(latestQuizState);
+  } catch (error) {
+    console.error("참가자 복원 실패:", error);
+  }
+}
+
 
 
 
@@ -744,6 +794,7 @@ window.joinQuiz = async function() {
 
 
     joined = true;
+    storeParticipant();
 
 
     document.getElementById("waitingName")
@@ -752,6 +803,7 @@ window.joinQuiz = async function() {
 
 
     showScreen("waitingScreen");
+    applyQuizState(latestQuizState);
 
 
   } catch(error) {
@@ -925,6 +977,7 @@ function displayQuestion(questionIndex, state) {
 
   orderSelection = [];
 
+  restoreAnswer(questionIndex);
   timeExpired = false;
 
   document.getElementById("timeOverMessage")
@@ -1035,10 +1088,12 @@ function displayQuestion(questionIndex, state) {
       ? Number(state.startedAt)
       : serverNow();
 
-  startTimer(
-    startedAt,
-    durationSec
-  );
+  if (submittedQuestion === currentQuestion) {
+    stopTimer();
+    showScreen("submittedScreen");
+  } else {
+    startTimer(startedAt, durationSec);
+  }
 
 }
 
@@ -1167,7 +1222,7 @@ window.resetOrder = function() {
 
 window.submitOrder = async function() {
 
-  if (timeExpired) {
+  if (timeExpired || answerSaving || submittedQuestion === currentQuestion) {
     return;
   }
 
@@ -1213,13 +1268,12 @@ window.submitOrder = async function() {
 
 async function saveAnswer(answer) {
 
-  if (timeExpired) {
+  if (timeExpired || answerSaving || submittedQuestion === currentQuestion) {
     return;
   }
 
-  const q =
-    questions[currentQuestion];
-
+  answerSaving = true;
+  const savingQuestion = currentQuestion;
 
   // 문제 번호 + 참가자 ID를 고정 키로 사용해 중복 답변을 구분합니다.
   // 서버 보안규칙에서 기존 키의 덮어쓰기를 금지해야 최종적으로 보호됩니다.
@@ -1251,9 +1305,8 @@ async function saveAnswer(answer) {
     );
 
 
-    submittedQuestion =
-      currentQuestion;
-
+    rememberAnswer(savingQuestion, answer);
+    submittedQuestion = savingQuestion;
     stopTimer();
 
 
@@ -1269,7 +1322,13 @@ async function saveAnswer(answer) {
     );
 
     console.error(error);
-
+    if (!timeExpired && currentQuestion === savingQuestion) {
+      document.querySelectorAll(".answer").forEach(btn => { btn.disabled = false; });
+      const submitButton = document.querySelector(".submit-button");
+      if (submitButton) submitButton.disabled = false;
+    }
+  } finally {
+    answerSaving = false;
   }
 
 }
@@ -1380,118 +1439,65 @@ function showResult() {
 
 
 /* ------------------------
-   강사 진행상태 감시
+   강사 진행상태 감시 및 재접속 복구
 ------------------------- */
 
-onValue(
-  ref(database, "quizState"),
-  snapshot => {
-
-    if (!joined) return;
-
-
-    const state =
-      snapshot.val();
-
-
-    if (!state) {
-
-      showScreen(
-        "waitingScreen"
-      );
-
-      return;
-
-    }
-
-
-    if (
-      state.status ===
-      "question"
-    ) {
-
-      const newQuestion =
-        Number(
-          state.question
-        );
-
-
-      /*
-        새로운 문제일 때만
-        문제화면 초기화
-      */
-
-      if (
-        newQuestion !==
-        currentQuestion
-      ) {
-
-        displayQuestion(
-          newQuestion,
-          state
-        );
-
-      } else if (
-        !timerInterval &&
-        submittedQuestion !== currentQuestion &&
-        !timeExpired
-      ) {
-
-        startTimer(
-          state.startedAt,
-          state.durationSec || 10
-        );
-
-      }
-
-    }
-
-
-    if (
-      state.status ===
-      "result"
-    ) {
-
-      currentQuestion =
-        Number(
-          state.question
-        );
-
-
-      showResult();
-
-    }
-
-
-    if (
-      state.status ===
-      "waiting"
-    ) {
-
-      stopTimer();
-
-      showScreen(
-        "waitingScreen"
-      );
-
-    }
-
-
-    if (
-      state.status ===
-      "finished"
-    ) {
-
-      stopTimer();
-
-      showScreen(
-        "finishedScreen"
-      );
-
-    }
-
+function applyQuizState(state) {
+  if (!joined) return;
+  if (!state) {
+    stopTimer();
+    showScreen("waitingScreen");
+    return;
   }
-);
+
+  if (state.status === "question") {
+    const newQuestion = Number(state.question);
+    if (!Number.isInteger(newQuestion) || newQuestion < 0 || newQuestion >= questions.length) return;
+    if (newQuestion !== currentQuestion) {
+      displayQuestion(newQuestion, state);
+    } else if (submittedQuestion === currentQuestion) {
+      stopTimer();
+      showScreen("submittedScreen");
+    } else if (!timerInterval && !timeExpired) {
+      startTimer(state.startedAt, state.durationSec || 10);
+    }
+    return;
+  }
+
+  if (state.status === "result") {
+    const newQuestion = Number(state.question);
+    if (!Number.isInteger(newQuestion) || newQuestion < 0 || newQuestion >= questions.length) return;
+    if (currentQuestion !== newQuestion) {
+      currentQuestion = newQuestion;
+      submittedQuestion = -1;
+      myAnswer = null;
+      restoreAnswer(newQuestion);
+    }
+    showResult();
+    return;
+  }
+
+  if (state.status === "waiting") {
+    stopTimer();
+    currentQuestion = -1;
+    submittedQuestion = -1;
+    myAnswer = null;
+    showScreen("waitingScreen");
+    return;
+  }
+
+  if (state.status === "finished") {
+    stopTimer();
+    showScreen("finishedScreen");
+  }
+}
+
+onValue(ref(database, "quizState"), snapshot => {
+  latestQuizState = snapshot.val();
+  applyQuizState(latestQuizState);
+}, error => console.error("진행상태 수신 실패:", error));
+
+restoreParticipant();
 
 </script>
 
