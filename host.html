@@ -368,6 +368,10 @@ body.admin-ready #authGate { display:none; }
 .auth-card input { width:100%; padding:15px; border:1px solid #bbb; border-radius:10px; font-size:19px; margin:16px 0; }
 .auth-card button { width:100%; background:#222; color:white; }
 #authError { color:#a32222; min-height:26px; font-size:14px; }
+
+/* 문제 세트 관리 */
+.set-panel{max-width:920px;margin:12px auto 26px;background:#fff;padding:20px;border-radius:16px;text-align:left;box-shadow:0 2px 10px #0001}
+.set-panel h3{margin:0 0 12px}.set-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.set-row select,.set-row input,.set-panel textarea{font:inherit;padding:10px;border:1px solid #bbb;border-radius:8px;max-width:100%}.set-row select{flex:1;min-width:190px}.set-panel button{font-size:14px;padding:10px 13px;margin:3px}.set-list{margin-top:12px;max-height:320px;overflow:auto}.set-item{display:flex;gap:9px;align-items:center;padding:9px;border-bottom:1px solid #eee}.set-item label{flex:1;cursor:pointer}.set-item small{color:#777}.set-item button{padding:6px 9px}.set-hint{font-size:13px;color:#666;margin-top:8px}.set-editor{display:none;border-top:1px solid #ddd;margin-top:16px;padding-top:15px}.set-editor input,.set-editor textarea,.set-editor select{width:100%;margin:5px 0 12px;padding:11px;border:1px solid #bbb;border-radius:8px;font:inherit}.set-editor label{font-weight:bold;font-size:14px}.set-editor .set-row input{flex:1;min-width:80px}.set-editor .set-row select{min-width:120px}.set-editor button{margin-top:8px}
 </style>
 </head>
 
@@ -437,6 +441,24 @@ body.admin-ready #authGate { display:none; }
        참가자 대기 화면
   =========================== -->
 
+
+  <section id="setPanel" class="set-panel">
+    <h3>📚 문제 세트 관리</h3>
+    <div class="set-row"><select id="setSelect" aria-label="문제 세트 선택"></select><button class="secondary" id="newSetBtn" type="button">새 세트</button><button class="secondary" id="renameSetBtn" type="button">이름 변경</button><button class="secondary" id="deleteSetBtn" type="button">세트 삭제</button></div>
+    <div id="setMessage" class="set-hint">저장된 문제 세트를 불러오는 중입니다.</div>
+    <div id="setQuestionList" class="set-list"></div>
+    <button class="secondary" id="addQuestionBtn" type="button">+ 문제 추가</button>
+    <div id="setEditor" class="set-editor">
+      <h3 id="editorTitle">문제 편집</h3>
+      <label>문제 유형</label><select id="editType"><option value="choice">객관식</option><option value="ox">OX</option><option value="order">순서 선택</option></select>
+      <label>문제 내용</label><textarea id="editText" rows="2"></textarea>
+      <label>보기 (한 줄에 하나씩, OX는 자동 설정)</label><textarea id="editOptions" rows="4"></textarea>
+      <label>정답 (객관식은 보기와 동일하게, 순서는 정답 순서대로 한 줄씩)</label><textarea id="editCorrect" rows="3"></textarea>
+      <label>해설</label><textarea id="editExplanation" rows="2"></textarea>
+      <div class="set-row"><label>제한시간 <select id="editDuration"><option value="10">10초</option><option value="20">20초</option></select></label><label>배점 <select id="editPoints"><option value="1000">1000점</option><option value="2000">2000점 (중요)</option></select></label></div>
+      <button class="primary" id="saveQuestionBtn" type="button">문제 저장</button><button class="secondary" id="cancelQuestionBtn" type="button">취소</button>
+    </div>
+  </section>
   <div id="lobbyArea">
 
     <h2 style="font-size:32px; margin-top:40px;">
@@ -651,7 +673,8 @@ import {
   onValue,
   remove,
   update,
-  serverTimestamp
+  serverTimestamp,
+  push
 }
 from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
 
@@ -743,7 +766,7 @@ document.getElementById("logoutButton").addEventListener("click", async () => {
    샘플 문제
 ============================== */
 
-const questions = [
+const sampleQuestions = [
 
   {
     type: "choice",
@@ -791,6 +814,61 @@ const questions = [
 
 ];
 
+
+
+// 문제 세트는 quizSets 경로에 보존하고, 진행 문제는 quizState에 함께 전달합니다.
+let questions = [];
+let quizSets = {};
+let selectedSetId = "";
+let editQuestionIndex = -1;
+let setLoading = true;
+const setSelect = document.getElementById("setSelect");
+const setMessage = document.getElementById("setMessage");
+const editor = document.getElementById("setEditor");
+function canEditSets(){ if (!adminAuthenticated) { alert("관리자 로그인이 필요합니다."); return false; } if (quizMode === "question" || quizMode === "result") { alert("퀴즈 진행 중에는 문제 세트를 편집할 수 없습니다."); return false; } return true; }
+function getSelectedSet(){ return quizSets[selectedSetId] || null; }
+function selectedQuestions(){ const setData=getSelectedSet(); return setData ? (setData.questions||[]).filter(q=>q.enabled!==false).map(q=>({type:q.type,text:q.text,options:q.options,correct:q.correct,explanation:q.explanation||"",durationSec:Number(q.durationSec)||10,points:Number(q.points)||1000})) : []; }
+function updateSetUI(){
+  const prev=selectedSetId; setSelect.replaceChildren();
+  Object.entries(quizSets).sort((a,b)=>(a[1].name||"").localeCompare(b[1].name||"","ko")).forEach(([id,data])=>{ const option=document.createElement("option");option.value=id;option.textContent=data.name||"이름 없는 세트";setSelect.appendChild(option); });
+  if(!quizSets[prev]) selectedSetId=Object.keys(quizSets)[0]||"";
+  setSelect.value=selectedSetId;
+  const setData=getSelectedSet();const list=document.getElementById("setQuestionList");list.replaceChildren();
+  if(setData){ (setData.questions||[]).forEach((q,i)=>{
+    const row=document.createElement("div");row.className="set-item";
+    const checkbox=document.createElement("input");checkbox.type="checkbox";checkbox.checked=q.enabled!==false;checkbox.disabled=quizMode==="question"||quizMode==="result";checkbox.onchange=async()=>{if(!canEditSets())return;try{await set(ref(database,`quizSets/${selectedSetId}/questions/${i}/enabled`),checkbox.checked);}catch(e){alert("선택 저장 실패: 데이터베이스 권한을 확인하세요.");console.error(e);}};
+    const label=document.createElement("label");label.textContent=`${i+1}. ${q.text}`;label.onclick=()=>checkbox.click();
+    const edit=document.createElement("button");edit.textContent="수정";edit.onclick=()=>openQuestionEditor(i);
+    const del=document.createElement("button");del.textContent="삭제";del.onclick=()=>deleteQuestion(i);
+    row.append(checkbox,label,edit,del);list.appendChild(row);
+  }); }
+  const total=(setData?.questions||[]).length;const enabled=(setData?.questions||[]).filter(q=>q.enabled!==false).length;
+  setMessage.textContent=setLoading?"문제 세트를 불러오는 중입니다.":setData?`총 ${total}문제 · 출제 선택 ${enabled}문제 (선택한 문제만 순서대로 출제)` : "저장된 세트가 없습니다. '새 세트'를 눌러 만드세요.";
+  document.getElementById("startButton").disabled=setLoading||enabled===0;
+}
+async function saveSetQuestions(items){ await set(ref(database,`quizSets/${selectedSetId}/questions`),items); }
+setSelect.onchange=()=>{selectedSetId=setSelect.value;editor.style.display="none";updateSetUI();};
+document.getElementById("newSetBtn").onclick=async()=>{if(!canEditSets())return;const name=prompt("새 문제 세트 이름을 입력하세요.");if(!name?.trim())return;try{const r=push(ref(database,"quizSets"));await set(r,{name:name.trim(),questions:[]});selectedSetId=r.key;updateSetUI();}catch(e){alert("세트 저장 실패: Firebase 규칙을 확인하세요.");console.error(e);}};
+document.getElementById("renameSetBtn").onclick=async()=>{if(!canEditSets())return;const d=getSelectedSet();if(!d)return;const name=prompt("변경할 세트 이름",d.name);if(!name?.trim())return;try{await set(ref(database,`quizSets/${selectedSetId}/name`),name.trim());}catch(e){alert("이름 변경 실패");console.error(e);}};
+document.getElementById("deleteSetBtn").onclick=async()=>{if(!canEditSets())return;const d=getSelectedSet();if(!d)return;if(!confirm(`'${d.name}' 세트와 모든 문제를 삭제할까요? 이 작업은 되돌릴 수 없습니다.`))return;try{await remove(ref(database,`quizSets/${selectedSetId}`));}catch(e){alert("세트 삭제 실패");console.error(e);}};
+function openQuestionEditor(i){if(!canEditSets())return;editQuestionIndex=i;const q=i<0?{type:"choice",text:"",options:["",""],correct:"",explanation:"",durationSec:10,points:1000}:getSelectedSet().questions[i];
+  document.getElementById("editorTitle").textContent=i<0?"문제 추가":"문제 수정";
+  document.getElementById("editType").value=q.type;document.getElementById("editText").value=q.text;document.getElementById("editOptions").value=(q.options||[]).join("\n");document.getElementById("editCorrect").value=Array.isArray(q.correct)?q.correct.join("\n"):q.correct;
+  document.getElementById("editExplanation").value=q.explanation||"";document.getElementById("editDuration").value=String(q.durationSec||10);document.getElementById("editPoints").value=String(q.points||1000);editor.style.display="block";editor.scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+document.getElementById("addQuestionBtn").onclick=()=>{if(!getSelectedSet()){alert("먼저 문제 세트를 만들어 주세요.");return;}openQuestionEditor(-1);};
+document.getElementById("cancelQuestionBtn").onclick=()=>editor.style.display="none";
+document.getElementById("editType").onchange=()=>{if(document.getElementById("editType").value==="ox"){document.getElementById("editOptions").value="O\nX";document.getElementById("editCorrect").value="O";}};
+document.getElementById("saveQuestionBtn").onclick=async()=>{if(!canEditSets())return;const type=document.getElementById("editType").value,text=document.getElementById("editText").value.trim();let options=document.getElementById("editOptions").value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);if(type==="ox")options=["O","X"];
+  const raw=document.getElementById("editCorrect").value.trim();const correct=type==="order"?raw.split(/\r?\n/).map(x=>x.trim()).filter(Boolean):raw;
+  if(!text||options.length<2||options.length>8||new Set(options).size!==options.length){alert("문제와 중복 없는 보기 2~8개를 입력하세요.");return;}
+  if(type==="order"?(correct.length!==options.length||correct.some(x=>!options.includes(x))||new Set(correct).size!==options.length):!options.includes(correct)){alert("정답이 보기와 일치하지 않습니다.");return;}
+  const items=[...(getSelectedSet().questions||[])];const q={type,text,options,correct,explanation:document.getElementById("editExplanation").value.trim(),durationSec:Number(document.getElementById("editDuration").value),points:Number(document.getElementById("editPoints").value),enabled:editQuestionIndex<0?true:items[editQuestionIndex].enabled!==false};
+  if(editQuestionIndex<0)items.push(q);else items[editQuestionIndex]=q;
+  try{await saveSetQuestions(items);editor.style.display="none";}catch(e){alert("문제 저장 실패: Firebase 규칙을 확인하세요.");console.error(e);}
+};
+async function deleteQuestion(i){if(!canEditSets())return;if(!confirm("이 문제를 삭제할까요?"))return;const items=[...(getSelectedSet().questions||[])];items.splice(i,1);try{await saveSetQuestions(items);}catch(e){alert("문제 삭제 실패");console.error(e);}}
+onValue(ref(database,"quizSets"),snapshot=>{quizSets=snapshot.val()||{};setLoading=false;updateSetUI();},error=>{setLoading=false;setMessage.textContent="세트 읽기 실패: Firebase 보안 규칙을 확인하세요.";console.error(error);});
 
 /* ==============================
    현재 상태
@@ -971,6 +1049,8 @@ window.resetQuiz = async function() {
     document.getElementById("rankButton").style.display = "none";
     document.getElementById("nextButton").style.display = "none";
     document.getElementById("managementPanel").style.display = "none";
+    questions = [];
+    updateSetUI();
     alert("새 퀴즈 준비가 완료되었습니다.");
   } catch (error) {
     alert("초기화에 실패했습니다. 인터넷 연결과 관리자 권한을 확인해주세요.");
@@ -1080,6 +1160,8 @@ window.startQuiz = async function() {
   }
 
 
+  questions = selectedQuestions();
+  if (!questions.length) { alert("출제할 문제를 한 개 이상 선택하세요."); return; }
   currentQuestion = 0;
 
   currentAnswers = [];
@@ -1130,7 +1212,8 @@ window.startQuiz = async function() {
       question: 0,
       revealed: false,
       startedAt: startedAt,
-      durationSec: durationSec
+      durationSec: durationSec,
+      questions: questions
     }
   );
 
@@ -1322,7 +1405,8 @@ window.revealAnswer = async function() {
       revealed: true,
       durationSec: q.durationSec,
       points: q.points,
-      startedAt: questionStartedAt
+      startedAt: questionStartedAt,
+      questions: questions
     }
   );
 
@@ -1852,7 +1936,8 @@ window.nextQuestion = async function() {
       ref(database, "quizState"),
       {
         status: "finished",
-        finishedAt: Date.now()
+        finishedAt: Date.now(),
+        questions: questions
       }
     );
 
@@ -1897,7 +1982,8 @@ window.nextQuestion = async function() {
       question: currentQuestion,
       revealed: false,
       startedAt: startedAt,
-      durationSec: durationSec
+      durationSec: durationSec,
+      questions: questions
     }
   );
 
