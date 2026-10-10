@@ -540,7 +540,7 @@ onAuthStateChanged(auth, async user => {
    샘플 문제
 ------------------------- */
 
-const questions = [
+const sampleQuestions = [
 
   {
     type: "choice",
@@ -613,6 +613,7 @@ const questions = [
 
 
 
+let questions = sampleQuestions;
 let nickname = "";
 
 let joined = false;
@@ -1448,6 +1449,7 @@ function showResult() {
 ------------------------- */
 
 function applyQuizState(state) {
+  if (state && Array.isArray(state.questions) && state.questions.length) questions = state.questions;
   if (!joined) return;
   if (!state) {
     stopTimer();
