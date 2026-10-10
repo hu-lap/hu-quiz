@@ -639,6 +639,7 @@ let serverTimeOffset = 0;
 let latestQuizState = null;
 let answerSaving = false;
 const participantStorageKey = "huQuizParticipant_v2";
+const resetStorageKey = "huQuizLastReset_v1";
 
 function storeParticipant() {
   sessionStorage.setItem(participantStorageKey, JSON.stringify({
@@ -678,6 +679,9 @@ async function restoreParticipant() {
     participantId = saved.participantId;
     nickname = record.nickname;
     joined = true;
+    if (latestQuizState?.resetAt && !sessionStorage.getItem(resetStorageKey)) {
+      sessionStorage.setItem(resetStorageKey, String(latestQuizState.resetAt));
+    }
     document.getElementById("waitingName").textContent = nickname + "님";
     applyQuizState(latestQuizState);
   } catch (error) {
@@ -794,6 +798,7 @@ window.joinQuiz = async function() {
 
 
     joined = true;
+    if (latestQuizState?.resetAt) sessionStorage.setItem(resetStorageKey, String(latestQuizState.resetAt));
     storeParticipant();
 
 
@@ -1478,6 +1483,25 @@ function applyQuizState(state) {
   }
 
   if (state.status === "waiting") {
+    // 강사가 새 퀴즈를 준비했다면 기존 참가자 세션을 폐기하고 재입장 유도
+    if (state.resetAt && String(state.resetAt) !== sessionStorage.getItem(resetStorageKey)) {
+      sessionStorage.setItem(resetStorageKey, String(state.resetAt));
+      sessionStorage.removeItem(participantStorageKey);
+      if (participantId) {
+        for (let i = 0; i < questions.length; i++) {
+          sessionStorage.removeItem("huQuizAnswer_" + participantId + "_" + i);
+        }
+      }
+      joined = false;
+      participantId = "";
+      nickname = "";
+      currentQuestion = -1;
+      submittedQuestion = -1;
+      myAnswer = null;
+      stopTimer();
+      showScreen("joinScreen");
+      return;
+    }
     stopTimer();
     currentQuestion = -1;
     submittedQuestion = -1;
