@@ -655,7 +655,7 @@ import {
 }
 from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
 
-import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut }
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, setPersistence, browserSessionPersistence }
 from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
 
@@ -696,6 +696,8 @@ const app =
 const database =
   getDatabase(app);
 const auth = getAuth(app);
+// 강사 로그인은 현재 브라우저 세션 동안만 유지합니다.
+const authPersistenceReady = setPersistence(auth, browserSessionPersistence);
 const ADMIN_EMAIL = "admin@hu-lab.com";
 const ADMIN_UID = "sx4AGkO3lobofS46Oz5CiTw6xuA3";
 let adminAuthenticated = false;
@@ -708,6 +710,7 @@ authForm.addEventListener("submit", async event => {
   button.disabled = true;
   error.textContent = "";
   try {
+    await authPersistenceReady;
     const result = await signInWithEmailAndPassword(auth, ADMIN_EMAIL, document.getElementById("adminPassword").value);
     if (result.user.uid !== ADMIN_UID) {
       await signOut(auth);
@@ -720,10 +723,13 @@ authForm.addEventListener("submit", async event => {
   } finally { button.disabled = false; }
 });
 
-onAuthStateChanged(auth, async user => {
+authPersistenceReady.then(() => onAuthStateChanged(auth, async user => {
   adminAuthenticated = Boolean(user && user.uid === ADMIN_UID);
   document.body.classList.toggle("admin-ready", adminAuthenticated);
   if (user && !adminAuthenticated) await signOut(auth);
+})).catch(error => {
+  console.error("관리자 로그인 유지 설정 실패:", error);
+  document.getElementById("authError").textContent = "로그인 설정 오류가 발생했습니다. 새로고침해 주세요.";
 });
 
 document.getElementById("logoutButton").addEventListener("click", async () => {
