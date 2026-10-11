@@ -828,7 +828,7 @@ const setMessage = document.getElementById("setMessage");
 const editor = document.getElementById("setEditor");
 function canEditSets(){ if (!adminAuthenticated) { alert("관리자 로그인이 필요합니다."); return false; } if (quizMode === "question" || quizMode === "result") { alert("퀴즈 진행 중에는 문제 세트를 편집할 수 없습니다."); return false; } return true; }
 function getSelectedSet(){ return quizSets[selectedSetId] || null; }
-function selectedQuestions(){ const setData=getSelectedSet(); return setData ? (setData.questions||[]).filter(q=>q.enabled!==false).map(q=>({type:q.type,text:q.text,options:q.options,correct:q.correct,explanation:q.explanation||"",durationSec:Number(q.durationSec)||10,points:Number(q.points ?? 1000)})) : []; }
+function selectedQuestions(){ const setData=getSelectedSet(); return setData ? (setData.questions||[]).filter(q=>q.enabled!==false).map(q=>({type:q.type,text:q.text,options:q.options,correct:q.correct??null,explanation:q.explanation||"",durationSec:Number(q.durationSec)||10,points:Number(q.points ?? 1000)})) : []; }
 function updateSetUI(){
   const prev=selectedSetId; setSelect.replaceChildren();
   Object.entries(quizSets).sort((a,b)=>(a[1].name||"").localeCompare(b[1].name||"","ko")).forEach(([id,data])=>{ const option=document.createElement("option");option.value=id;option.textContent=data.name||"이름 없는 세트";setSelect.appendChild(option); });
