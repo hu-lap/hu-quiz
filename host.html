@@ -448,14 +448,15 @@ body.admin-ready #authGate { display:none; }
     <div id="setMessage" class="set-hint">저장된 문제 세트를 불러오는 중입니다.</div>
     <div id="setQuestionList" class="set-list"></div>
     <button class="secondary" id="addQuestionBtn" type="button">+ 문제 추가</button>
+    <button class="secondary" id="importSetBtn" type="button">📥 JSON 세트 일괄 가져오기</button><input id="importSetFile" type="file" accept=".json,application/json" style="display:none">
     <div id="setEditor" class="set-editor">
       <h3 id="editorTitle">문제 편집</h3>
-      <label>문제 유형</label><select id="editType"><option value="choice">객관식</option><option value="ox">OX</option><option value="order">순서 선택</option></select>
+      <label>문제 유형</label><select id="editType"><option value="choice">객관식</option><option value="ox">OX</option><option value="order">순서 선택</option><option value="multi">복수정답</option><option value="poll">투표 (정답 없음)</option></select>
       <label>문제 내용</label><textarea id="editText" rows="2"></textarea>
       <label>보기 (한 줄에 하나씩, OX는 자동 설정)</label><textarea id="editOptions" rows="4"></textarea>
       <label>정답 (객관식은 보기와 동일하게, 순서는 정답 순서대로 한 줄씩)</label><textarea id="editCorrect" rows="3"></textarea>
       <label>해설</label><textarea id="editExplanation" rows="2"></textarea>
-      <div class="set-row"><label>제한시간 <select id="editDuration"><option value="10">10초</option><option value="20">20초</option></select></label><label>배점 <select id="editPoints"><option value="1000">1000점</option><option value="2000">2000점 (중요)</option></select></label></div>
+      <div class="set-row"><label>제한시간 <select id="editDuration"><option value="10">10초</option><option value="20">20초</option></select></label><label>배점 <select id="editPoints"><option value="0">0점 (몸풀기)</option><option value="1000">1000점</option><option value="2000">2000점 (중요)</option></select></label></div>
       <button class="primary" id="saveQuestionBtn" type="button">문제 저장</button><button class="secondary" id="cancelQuestionBtn" type="button">취소</button>
     </div>
   </section>
@@ -827,7 +828,7 @@ const setMessage = document.getElementById("setMessage");
 const editor = document.getElementById("setEditor");
 function canEditSets(){ if (!adminAuthenticated) { alert("관리자 로그인이 필요합니다."); return false; } if (quizMode === "question" || quizMode === "result") { alert("퀴즈 진행 중에는 문제 세트를 편집할 수 없습니다."); return false; } return true; }
 function getSelectedSet(){ return quizSets[selectedSetId] || null; }
-function selectedQuestions(){ const setData=getSelectedSet(); return setData ? (setData.questions||[]).filter(q=>q.enabled!==false).map(q=>({type:q.type,text:q.text,options:q.options,correct:q.correct,explanation:q.explanation||"",durationSec:Number(q.durationSec)||10,points:Number(q.points)||1000})) : []; }
+function selectedQuestions(){ const setData=getSelectedSet(); return setData ? (setData.questions||[]).filter(q=>q.enabled!==false).map(q=>({type:q.type,text:q.text,options:q.options,correct:q.correct,explanation:q.explanation||"",durationSec:Number(q.durationSec)||10,points:Number(q.points ?? 1000)})) : []; }
 function updateSetUI(){
   const prev=selectedSetId; setSelect.replaceChildren();
   Object.entries(quizSets).sort((a,b)=>(a[1].name||"").localeCompare(b[1].name||"","ko")).forEach(([id,data])=>{ const option=document.createElement("option");option.value=id;option.textContent=data.name||"이름 없는 세트";setSelect.appendChild(option); });
@@ -853,21 +854,41 @@ document.getElementById("renameSetBtn").onclick=async()=>{if(!canEditSets())retu
 document.getElementById("deleteSetBtn").onclick=async()=>{if(!canEditSets())return;const d=getSelectedSet();if(!d)return;if(!confirm(`'${d.name}' 세트와 모든 문제를 삭제할까요? 이 작업은 되돌릴 수 없습니다.`))return;try{await remove(ref(database,`quizSets/${selectedSetId}`));}catch(e){alert("세트 삭제 실패");console.error(e);}};
 function openQuestionEditor(i){if(!canEditSets())return;editQuestionIndex=i;const q=i<0?{type:"choice",text:"",options:["",""],correct:"",explanation:"",durationSec:10,points:1000}:getSelectedSet().questions[i];
   document.getElementById("editorTitle").textContent=i<0?"문제 추가":"문제 수정";
-  document.getElementById("editType").value=q.type;document.getElementById("editText").value=q.text;document.getElementById("editOptions").value=(q.options||[]).join("\n");document.getElementById("editCorrect").value=Array.isArray(q.correct)?q.correct.join("\n"):q.correct;
-  document.getElementById("editExplanation").value=q.explanation||"";document.getElementById("editDuration").value=String(q.durationSec||10);document.getElementById("editPoints").value=String(q.points||1000);editor.style.display="block";editor.scrollIntoView({behavior:"smooth",block:"nearest"});
+  document.getElementById("editType").value=q.type;document.getElementById("editText").value=q.text;document.getElementById("editOptions").value=(q.options||[]).join("\n");document.getElementById("editCorrect").value=Array.isArray(q.correct)?q.correct.join("\n"):(q.correct??"");
+  document.getElementById("editExplanation").value=q.explanation||"";document.getElementById("editDuration").value=String(q.durationSec||10);document.getElementById("editPoints").value=String(q.points??1000);editor.style.display="block";editor.scrollIntoView({behavior:"smooth",block:"nearest"});
 }
 document.getElementById("addQuestionBtn").onclick=()=>{if(!getSelectedSet()){alert("먼저 문제 세트를 만들어 주세요.");return;}openQuestionEditor(-1);};
 document.getElementById("cancelQuestionBtn").onclick=()=>editor.style.display="none";
 document.getElementById("editType").onchange=()=>{if(document.getElementById("editType").value==="ox"){document.getElementById("editOptions").value="O\nX";document.getElementById("editCorrect").value="O";}};
 document.getElementById("saveQuestionBtn").onclick=async()=>{if(!canEditSets())return;const type=document.getElementById("editType").value,text=document.getElementById("editText").value.trim();let options=document.getElementById("editOptions").value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);if(type==="ox")options=["O","X"];
-  const raw=document.getElementById("editCorrect").value.trim();const correct=type==="order"?raw.split(/\r?\n/).map(x=>x.trim()).filter(Boolean):raw;
+  const raw=document.getElementById("editCorrect").value.trim();const correct=(type==="order"||type==="multi")?raw.split(/\r?\n/).map(x=>x.trim()).filter(Boolean):(type==="poll"?null:raw);
   if(!text||options.length<2||options.length>8||new Set(options).size!==options.length){alert("문제와 중복 없는 보기 2~8개를 입력하세요.");return;}
-  if(type==="order"?(correct.length!==options.length||correct.some(x=>!options.includes(x))||new Set(correct).size!==options.length):!options.includes(correct)){alert("정답이 보기와 일치하지 않습니다.");return;}
+  if(type==="poll"?false:type==="order"?(correct.length!==options.length||correct.some(x=>!options.includes(x))||new Set(correct).size!==options.length):type==="multi"?(!correct.length||correct.some(x=>!options.includes(x))||new Set(correct).size!==correct.length):!options.includes(correct)){alert("정답이 보기와 일치하지 않습니다.");return;}
   const items=[...(getSelectedSet().questions||[])];const q={type,text,options,correct,explanation:document.getElementById("editExplanation").value.trim(),durationSec:Number(document.getElementById("editDuration").value),points:Number(document.getElementById("editPoints").value),enabled:editQuestionIndex<0?true:items[editQuestionIndex].enabled!==false};
   if(editQuestionIndex<0)items.push(q);else items[editQuestionIndex]=q;
   try{await saveSetQuestions(items);editor.style.display="none";}catch(e){alert("문제 저장 실패: Firebase 규칙을 확인하세요.");console.error(e);}
 };
 async function deleteQuestion(i){if(!canEditSets())return;if(!confirm("이 문제를 삭제할까요?"))return;const items=[...(getSelectedSet().questions||[])];items.splice(i,1);try{await saveSetQuestions(items);}catch(e){alert("문제 삭제 실패");console.error(e);}}
+// 세트 전체를 새로 생성하며 기존 세트는 변경하지 않습니다.
+document.getElementById("importSetBtn").onclick=()=>{if(!canEditSets())return;document.getElementById("importSetFile").click();};
+document.getElementById("importSetFile").onchange=async e=>{
+ const input=e.target;const file=input.files?.[0];if(!file)return;
+ try{
+  const payload=JSON.parse(await file.text());
+  if(!payload||typeof payload.name!=="string"||!payload.name.trim()||!Array.isArray(payload.questions)||!payload.questions.length||payload.questions.length>300)throw Error("세트 이름과 문제 1~300개가 필요합니다.");
+  const questionsToSave=payload.questions.map((original,i)=>{
+   const q={...original};if(q.type==="choice"&&q.correct==null&&Number(q.points)===0)q.type="poll";
+   if(!q||!["choice","ox","order","multi","poll"].includes(q.type)||typeof q.text!=="string"||!q.text.trim()||!Array.isArray(q.options)||q.options.length<2||q.options.length>8||q.options.some(v=>typeof v!=="string"||!v.trim())||new Set(q.options).size!==q.options.length)throw Error(`${i+1}번 문제 또는 보기 형식 오류`);
+   const valid=q.type==="poll"?q.correct==null:q.type==="order"?Array.isArray(q.correct)&&q.correct.length===q.options.length&&q.correct.every(v=>q.options.includes(v))&&new Set(q.correct).size===q.correct.length:q.type==="multi"?Array.isArray(q.correct)&&q.correct.length>0&&q.correct.every(v=>q.options.includes(v))&&new Set(q.correct).size===q.correct.length:q.options.includes(q.correct);
+   if(!valid)throw Error(`${i+1}번 정답 형식 오류`);
+   const points=Number(q.points??1000),durationSec=Number(q.durationSec??20);
+   if(![0,1000,2000].includes(points)||![10,20].includes(durationSec)||q.type==="poll"&&points!==0)throw Error(`${i+1}번 배점 또는 제한시간 오류`);
+   return {type:q.type,text:q.text,options:q.options,correct:q.correct??null,explanation:q.explanation||"",durationSec,points,enabled:q.enabled!==false};
+  });
+  if(!confirm(`'${payload.name}' 세트에 ${questionsToSave.length}문제를 새로 등록할까요?\n기존 세트는 유지됩니다.`))return;
+  const newRef=push(ref(database,"quizSets"));await set(newRef,{name:payload.name.trim(),questions:questionsToSave});selectedSetId=newRef.key;updateSetUI();alert(`${questionsToSave.length}문제 등록 완료!`);
+ }catch(err){alert("JSON 가져오기 실패: "+err.message);console.error(err);}finally{input.value="";}
+};
 onValue(ref(database,"quizSets"),snapshot=>{quizSets=snapshot.val()||{};setLoading=false;updateSetUI();},error=>{setLoading=false;setMessage.textContent="세트 읽기 실패: Firebase 보안 규칙을 확인하세요.";console.error(error);});
 
 /* ==============================
@@ -1301,9 +1322,7 @@ window.revealAnswer = async function() {
         const submittedAt = Number(data.submittedAt);
         if (!Number.isFinite(submittedAt) || submittedAt < questionStartedAt ||
             submittedAt > questionStartedAt + Number(q.durationSec) * 1000) return false;
-        return q.type === "order"
-          ? JSON.stringify(data.answer) === JSON.stringify(q.correct)
-          : data.answer === q.correct;
+        return q.type === "poll" ? false : (q.type === "order" ? JSON.stringify(data.answer) === JSON.stringify(q.correct) : q.type === "multi" ? Array.isArray(data.answer)&&JSON.stringify([...data.answer].sort())===JSON.stringify([...q.correct].sort()) : data.answer === q.correct);
       })
       .map(data => {
 
@@ -1426,7 +1445,7 @@ window.revealAnswer = async function() {
 
   document.getElementById("rankButton")
     .style.display =
-    "inline-block";
+    (q.type === "poll" || Number(q.points) === 0) ? "none" : "inline-block";
 
 
   document.getElementById("nextButton")
@@ -1453,23 +1472,14 @@ function showResults(q) {
   let correctText;
 
 
-  if (q.type === "order") {
-
-    correctText =
-      q.correct.join(" → ");
-
-  } else {
-
-    correctText =
-      q.correct;
+  if (q.type === "poll") { correctText = "정답 없는 투표"; } else if (Array.isArray(q.correct)) { correctText = q.correct.join(q.type === "order" ? " → " : ", "); } else { correctText = q.correct;
 
   }
 
 
   document.getElementById("correctAnswer")
     .textContent =
-    "정답 : " +
-    correctText;
+    (q.type === "poll" ? "" : "정답 : ") + correctText;
 
 
   document.getElementById("explanation")
