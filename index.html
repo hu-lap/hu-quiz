@@ -1038,14 +1038,11 @@ function displayQuestion(questionIndex, state) {
       option;
 
 
-    if (q.type === "order") {
+    if (q.type === "order" || q.type === "multi") {
 
       button.onclick = function() {
 
-        selectOrder(
-          button,
-          option
-        );
+        q.type === "multi" ? selectMulti(button,option) : selectOrder(button,option);
 
       };
 
@@ -1068,7 +1065,7 @@ function displayQuestion(questionIndex, state) {
   });
 
 
-  if (q.type === "order") {
+  if (q.type === "order" || q.type === "multi") {
 
     document.getElementById("orderInfo")
       .style.display = "block";
@@ -1077,7 +1074,7 @@ function displayQuestion(questionIndex, state) {
       .style.display = "block";
 
     updateOrderDisplay();
-
+    if(q.type === "multi")document.querySelector("#orderInfo .order-title").textContent="내가 선택한 보기";else document.querySelector("#orderInfo .order-title").textContent="내가 선택한 순서";
   }
 
 
@@ -1145,6 +1142,12 @@ async function submitChoice(
    순서 선택
 ------------------------- */
 
+function selectMulti(button,option){
+ if(submittedQuestion===currentQuestion||timeExpired)return;
+ if(orderSelection.includes(option)){orderSelection=orderSelection.filter(v=>v!==option);button.classList.remove("used");}
+ else{orderSelection.push(option);button.classList.add("used");}
+ updateOrderDisplay();
+}
 function selectOrder(
   button,
   option
@@ -1237,8 +1240,7 @@ window.submitOrder = async function() {
 
 
   if (
-    orderSelection.length !==
-    q.options.length
+    (q.type === "multi" ? orderSelection.length === 0 : orderSelection.length !== q.options.length)
   ) {
 
     alert(
@@ -1251,7 +1253,7 @@ window.submitOrder = async function() {
 
 
   myAnswer =
-    [...orderSelection];
+    q.type === "multi" ? [...orderSelection].sort() : [...orderSelection];
 
 
   document.querySelectorAll(".answer")
@@ -1373,7 +1375,7 @@ function showResult() {
 
   if (myAnswer !== null) {
 
-    if (q.type === "order") {
+    if (q.type === "poll") { isCorrect = true; } else if (q.type === "multi") { isCorrect = JSON.stringify([...(myAnswer||[])].sort()) === JSON.stringify([...q.correct].sort()); } else if (q.type === "order") {
 
       isCorrect =
         JSON.stringify(myAnswer) ===
@@ -1391,14 +1393,12 @@ function showResult() {
 
   document.getElementById("resultSymbol")
     .textContent =
-    isCorrect ? "⭕" : "❌";
+    q.type === "poll" ? "🗳️" : (isCorrect ? "⭕" : "❌");
 
 
   document.getElementById("resultTitle")
     .textContent =
-    isCorrect ?
-    "정답입니다!" :
-    "아쉽네요!";
+    q.type === "poll" ? "투표 완료!" : (isCorrect ? "정답입니다!" : "아쉽네요!");
 
 
   let myText =
@@ -1429,8 +1429,7 @@ function showResult() {
 
   document.getElementById("correctAnswer")
     .textContent =
-    "정답 : " +
-    correctText;
+    q.type === "poll" ? "정답이 없는 몸풀기 투표입니다." : "정답 : " + correctText;
 
 
   document.getElementById("explanation")
