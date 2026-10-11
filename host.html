@@ -725,6 +725,7 @@ const authPersistenceReady = setPersistence(auth, browserSessionPersistence);
 const ADMIN_EMAIL = "admin@hu-lab.com";
 const ADMIN_UID = "sx4AGkO3lobofS46Oz5CiTw6xuA3";
 let adminAuthenticated = false;
+let stopQuizSetsListener = null;
 
 const authForm = document.getElementById("authForm");
 authForm.addEventListener("submit", async event => {
@@ -750,6 +751,24 @@ authForm.addEventListener("submit", async event => {
 authPersistenceReady.then(() => onAuthStateChanged(auth, async user => {
   adminAuthenticated = Boolean(user && user.uid === ADMIN_UID);
   document.body.classList.toggle("admin-ready", adminAuthenticated);
+  if (stopQuizSetsListener) { stopQuizSetsListener(); stopQuizSetsListener = null; }
+  if (adminAuthenticated) {
+    setLoading = true;
+    setMessage.textContent = "문제 세트를 불러오는 중입니다.";
+    stopQuizSetsListener = onValue(ref(database,"quizSets"), snapshot => {
+      quizSets = snapshot.val() || {};
+      setLoading = false;
+      updateSetUI();
+    }, error => {
+      setLoading = false;
+      setMessage.textContent = "세트 읽기 실패: " + error.message;
+      console.error("quizSets 읽기 오류:", error);
+    });
+  } else {
+    quizSets = {};
+    selectedSetId = "";
+    setLoading = true;
+  }
   if (user && !adminAuthenticated) await signOut(auth);
 })).catch(error => {
   console.error("관리자 로그인 유지 설정 실패:", error);
@@ -889,7 +908,7 @@ document.getElementById("importSetFile").onchange=async e=>{
   const newRef=push(ref(database,"quizSets"));await set(newRef,{name:payload.name.trim(),questions:questionsToSave});selectedSetId=newRef.key;updateSetUI();alert(`${questionsToSave.length}문제 등록 완료!`);
  }catch(err){alert("JSON 가져오기 실패: "+err.message);console.error(err);}finally{input.value="";}
 };
-onValue(ref(database,"quizSets"),snapshot=>{quizSets=snapshot.val()||{};setLoading=false;updateSetUI();},error=>{setLoading=false;setMessage.textContent="세트 읽기 실패: Firebase 보안 규칙을 확인하세요.";console.error(error);});
+// 문제 세트 구독은 관리자 인증 성공 후 시작합니다.
 
 /* ==============================
    현재 상태
