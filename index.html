@@ -290,6 +290,7 @@ input {
   <input
     id="nickname"
     type="text"
+    maxlength="10"
     placeholder="닉네임을 입력하세요">
 
   <button
@@ -760,6 +761,11 @@ window.joinQuiz = async function() {
     document.getElementById("nickname")
       .value.trim();
 
+
+  if (Array.from(nickname).length > 10) {
+    alert("닉네임은 최대 10자까지 입력할 수 있습니다.");
+    return;
+  }
 
   if (!nickname) {
 
