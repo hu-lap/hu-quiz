@@ -402,7 +402,7 @@ input {
 
     <div class="message">
       답변이 제출되었습니다.<br>
-      강사의 정답 공개를 기다려 주세요.
+      <span id="submittedWaitText">강사의 정답 공개를 기다려 주세요.</span>
     </div>
 
   </div>
@@ -1021,6 +1021,9 @@ function displayQuestion(questionIndex, state) {
     .style.display = "none";
 
 
+  const submittedWaitText = document.getElementById("submittedWaitText");
+  if (submittedWaitText) submittedWaitText.textContent = q.type === "poll" ? "투표 결과를 기다려 주세요." : "강사의 정답 공개를 기다려 주세요.";
+
   q.options.forEach((option, index) => {
 
     const button =
@@ -1033,9 +1036,7 @@ function displayQuestion(questionIndex, state) {
 
 
     button.textContent =
-      (index + 1) +
-      ". " +
-      option;
+      q.type === "ox" ? option : (index + 1) + ". " + option;
 
 
     if (q.type === "order" || q.type === "multi") {
@@ -1398,7 +1399,7 @@ function showResult() {
 
   document.getElementById("resultTitle")
     .textContent =
-    q.type === "poll" ? "투표 완료!" : (isCorrect ? "정답입니다!" : "아쉽네요!");
+    q.type === "poll" ? "투표 결과 공개!" : (isCorrect ? "정답입니다!" : "아쉽네요!");
 
 
   let myText =
@@ -1429,7 +1430,7 @@ function showResult() {
 
   document.getElementById("correctAnswer")
     .textContent =
-    q.type === "poll" ? "정답이 없는 몸풀기 투표입니다." : "정답 : " + correctText;
+    q.type === "poll" ? "" : "정답 : " + correctText;
 
 
   document.getElementById("explanation")
