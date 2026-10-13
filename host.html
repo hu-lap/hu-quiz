@@ -1156,9 +1156,7 @@ function displayQuestion() {
         "option";
 
       div.textContent =
-        (index + 1) +
-        ". " +
-        option;
+        q.type === "ox" ? option : (index + 1) + ". " + option;
 
       optionsDiv.appendChild(div);
 
@@ -1279,6 +1277,7 @@ window.startQuiz = async function() {
   document.getElementById("answerButton")
     .style.display =
     "inline-block";
+  document.getElementById("answerButton").textContent = q.type === "poll" ? "투표 마감 · 결과 보기" : "정답 공개";
 
 
   document.getElementById("rankButton")
@@ -1454,7 +1453,7 @@ window.revealAnswer = async function() {
 
   document.getElementById("status")
     .textContent =
-    "정답 공개";
+    (q.type === "poll" ? "투표 결과" : "정답 공개");
 
 
   document.getElementById("answerButton")
@@ -1491,14 +1490,13 @@ function showResults(q) {
   let correctText;
 
 
-  if (q.type === "poll") { correctText = "정답 없는 투표"; } else if (Array.isArray(q.correct)) { correctText = q.correct.join(q.type === "order" ? " → " : ", "); } else { correctText = q.correct;
+  if (q.type === "poll") { correctText = ""; } else if (Array.isArray(q.correct)) { correctText = q.correct.join(q.type === "order" ? " → " : ", "); } else { correctText = q.correct;
 
   }
 
 
   document.getElementById("correctAnswer")
-    .textContent =
-    (q.type === "poll" ? "" : "정답 : ") + correctText;
+    .textContent = q.type === "poll" ? "" : "정답 : " + correctText;
 
 
   document.getElementById("explanation")
@@ -1661,7 +1659,7 @@ function showResults(q) {
 
     row.innerHTML = `
       <div class="result-label">
-        ${option} : ${count}명
+        ${option} : ${count}명 (${percent.toFixed(1)}%)
       </div>
 
       <div class="bar-bg">
