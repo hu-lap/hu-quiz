@@ -441,6 +441,15 @@ body.quiz-presenting .ranking { margin:8px auto; padding:15px; }
   .stat-option .stat-count { font-size:15px; }
 }
 
+
+/* 대기: QR을 먼저 표시하고 문제 세트는 아래에 배치 */
+#lobbyArea { max-width:1100px; margin:0 auto 18px; }
+#lobbyArea #joinQR { object-fit:contain; }
+body:not(.quiz-presenting) #startButton { display:none !important; }
+body.quiz-presenting #lobbyStartButton { display:none !important; }
+body.quiz-presenting .container { display:flex; flex-direction:column; }
+body.quiz-presenting #questionArea { width:100%; }
+body.quiz-presenting .controls { margin-top:auto; padding-top:8px; }
 </style>
 </head>
 
@@ -511,6 +520,64 @@ body.quiz-presenting .ranking { margin:8px auto; padding:15px; }
   =========================== -->
 
 
+  <div id="lobbyArea">
+
+    <h2 style="font-size:clamp(26px,3vw,39px);margin:10px auto 14px;">📱 HU Quiz 참여하기</h2>
+    <div style="margin:8px auto 12px;">
+
+      <div style="
+        font-size:20px;
+        margin-bottom:15px;
+        color:#555;
+      ">
+        휴대폰으로 QR코드를 스캔하여 참여하세요
+      </div>
+
+      <img
+        id="joinQR"
+        alt="HU Quiz 참여 QR코드"
+        style="
+          width:clamp(220px,26vh,290px);
+          height:clamp(220px,26vh,290px);
+          background:white;
+          padding:10px;
+          border-radius:15px;
+          border:1px solid #ddd;
+        "
+      >
+
+      <div style="
+        margin-top:12px;
+        font-size:15px;
+        color:#888;
+      ">
+        hu-lap.github.io/hu-quiz/
+      </div>
+
+    </div>
+
+    <div style="font-size:28px; margin:12px 0;">
+      현재
+      <strong>
+        <span id="participantCount">0</span>명
+      </strong>
+      입장
+    </div>
+
+    <div
+      id="participantList"
+      style="
+        max-width:700px;
+        margin:20px auto;
+        font-size:20px;
+        line-height:1.8;
+      ">
+    </div>
+
+    <button class="primary" id="lobbyStartButton" type="button" onclick="startQuiz()" style="font-size:22px;padding:15px 38px;">퀴즈 시작 → 문제 화면으로 전환</button>
+  </div>
+
+
   <section id="setPanel" class="set-panel">
     <h3>📚 문제 세트 관리</h3>
     <div class="set-row"><select id="setSelect" aria-label="문제 세트 선택"></select><button class="secondary" id="newSetBtn" type="button">새 세트</button><button class="secondary" id="renameSetBtn" type="button">이름 변경</button><button class="secondary" id="deleteSetBtn" type="button">세트 삭제</button></div>
@@ -529,65 +596,6 @@ body.quiz-presenting .ranking { margin:8px auto; padding:15px; }
       <button class="primary" id="saveQuestionBtn" type="button">문제 저장</button><button class="secondary" id="cancelQuestionBtn" type="button">취소</button>
     </div>
   </section>
-  <div id="lobbyArea">
-
-    <h2 style="font-size:32px; margin-top:40px;">
-      교육생 입장을 기다리고 있습니다
-    </h2>
-
-    <div style="margin:25px auto 30px;">
-
-      <div style="
-        font-size:20px;
-        margin-bottom:15px;
-        color:#555;
-      ">
-        휴대폰으로 QR코드를 스캔하여 참여하세요
-      </div>
-
-      <img
-        id="joinQR"
-        alt="HU Quiz 참여 QR코드"
-        style="
-          width:220px;
-          height:220px;
-          background:white;
-          padding:10px;
-          border-radius:15px;
-          border:1px solid #ddd;
-        "
-      >
-
-      <div style="
-        margin-top:12px;
-        font-size:15px;
-        color:#888;
-      ">
-        hu-lap.github.io/hu-quiz/
-      </div>
-
-    </div>
-
-    <div style="font-size:28px; margin:30px 0;">
-      현재
-      <strong>
-        <span id="participantCount">0</span>명
-      </strong>
-      입장
-    </div>
-
-    <div
-      id="participantList"
-      style="
-        max-width:700px;
-        margin:20px auto;
-        font-size:20px;
-        line-height:1.8;
-      ">
-    </div>
-
-  </div>
-
 
   <!-- ==========================
        문제 화면
@@ -933,7 +941,7 @@ function updateSetUI(){
   }); }
   const total=(setData?.questions||[]).length;const enabled=(setData?.questions||[]).filter(q=>q.enabled!==false).length;
   setMessage.textContent=setLoading?"문제 세트를 불러오는 중입니다.":setData?`총 ${total}문제 · 출제 선택 ${enabled}문제 (선택한 문제만 순서대로 출제)` : "저장된 세트가 없습니다. '새 세트'를 눌러 만드세요.";
-  document.getElementById("startButton").disabled=setLoading||enabled===0;
+  document.getElementById("startButton").disabled=setLoading||enabled===0; document.getElementById("lobbyStartButton").disabled=setLoading||enabled===0;
 }
 async function saveSetQuestions(items){ await set(ref(database,`quizSets/${selectedSetId}/questions`),items); }
 setSelect.onchange=()=>{selectedSetId=setSelect.value;editor.style.display="none";updateSetUI();};
@@ -1232,7 +1240,7 @@ function displayQuestion() {
 
     }
   );
-  if (q.type === "poll") renderAnswerStatistics(q);
+
 }
 
 
@@ -2108,9 +2116,7 @@ onValue(
       "responseCount"
     ).textContent =
       currentAnswers.length;
-    if (quizMode === "question" && questions[currentQuestion]?.type === "poll") {
-      renderAnswerStatistics(questions[currentQuestion]);
-    } else if (quizMode === "result" && questions[currentQuestion]) {
+    if (quizMode === "result" && questions[currentQuestion]) {
       renderAnswerStatistics(questions[currentQuestion]);
     }
 
