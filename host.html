@@ -372,6 +372,75 @@ body.admin-ready #authGate { display:none; }
 /* 문제 세트 관리 */
 .set-panel{max-width:920px;margin:12px auto 26px;background:#fff;padding:20px;border-radius:16px;text-align:left;box-shadow:0 2px 10px #0001}
 .set-panel h3{margin:0 0 12px}.set-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.set-row select,.set-row input,.set-panel textarea{font:inherit;padding:10px;border:1px solid #bbb;border-radius:8px;max-width:100%}.set-row select{flex:1;min-width:190px}.set-panel button{font-size:14px;padding:10px 13px;margin:3px}.set-list{margin-top:12px;max-height:320px;overflow:auto}.set-item{display:flex;gap:9px;align-items:center;padding:9px;border-bottom:1px solid #eee}.set-item label{flex:1;cursor:pointer}.set-item small{color:#777}.set-item button{padding:6px 9px}.set-hint{font-size:13px;color:#666;margin-top:8px}.set-editor{display:none;border-top:1px solid #ddd;margin-top:16px;padding-top:15px}.set-editor input,.set-editor textarea,.set-editor select{width:100%;margin:5px 0 12px;padding:11px;border:1px solid #bbb;border-radius:8px;font:inherit}.set-editor label{font-weight:bold;font-size:14px}.set-editor .set-row input{flex:1;min-width:80px}.set-editor .set-row select{min-width:120px}.set-editor button{margin-top:8px}
+
+/* 강사용 프로젝터 화면: 문제와 결과를 한 화면에 배치 */
+body.quiz-presenting { overflow-x:hidden; }
+body.quiz-presenting .container { padding:12px 3% 14px; min-height:100vh; }
+body.quiz-presenting .top { margin-bottom:5px; }
+body.quiz-presenting #setPanel,
+body.quiz-presenting #lobbyArea { display:none !important; }
+body.quiz-presenting .question-number { margin-top:2px; font-size:17px; }
+body.quiz-presenting .question {
+  font-size:clamp(26px,3.2vw,46px);
+  line-height:1.22; margin:7px auto 8px;
+  max-width:1200px; overflow-wrap:anywhere;
+}
+body.quiz-presenting .question-meta { margin-top:2px; font-size:15px; }
+body.quiz-presenting .timer-panel {
+  max-width:1050px; margin:8px auto; padding:9px 16px;
+}
+body.quiz-presenting .timer-value { font-size:27px; }
+body.quiz-presenting .timer-bar-bg { margin-top:5px; height:9px; }
+body.quiz-presenting .options {
+  max-width:1200px; margin:12px auto 6px;
+  display:grid; grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+}
+body.quiz-presenting .option {
+  min-height:clamp(76px,12vh,122px);
+  padding:14px 18px;
+  font-size:clamp(23px,2.4vw,35px);
+  display:flex; align-items:center; justify-content:center;
+  line-height:1.22; overflow-wrap:anywhere;
+}
+body.quiz-presenting .option.stat-option {
+  display:flex; flex-direction:column; justify-content:center;
+  align-items:stretch; text-align:left; gap:9px;
+}
+.stat-option .stat-heading { display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
+.stat-option .stat-label { font-size:clamp(22px,2.2vw,34px); font-weight:800; overflow-wrap:anywhere; }
+.stat-option .stat-count { font-size:clamp(18px,1.6vw,25px); white-space:nowrap; font-weight:800; }
+.stat-option .stat-track { height:15px; border-radius:99px; background:#e3e5e9; overflow:hidden; }
+.stat-option .stat-fill { height:100%; background:#536477; border-radius:99px; transition:width .3s; }
+.stat-option.correct-choice { border-color:#39a660; background:#eefaf1; }
+.stat-option.correct-choice .stat-fill { background:#39a660; }
+body.quiz-presenting .response { margin:7px 0; font-size:21px; }
+body.quiz-presenting .result-area { max-width:1200px; margin:8px auto 0; }
+body.quiz-presenting .correct-answer {
+  padding:10px 15px; font-size:clamp(20px,2vw,29px); margin-bottom:5px;
+}
+body.quiz-presenting .explanation {
+  padding:8px 12px; font-size:clamp(17px,1.5vw,23px); margin-bottom:4px;
+}
+body.quiz-presenting .controls { margin-top:7px; }
+body.quiz-presenting .controls button { padding:11px 22px; font-size:18px; margin:4px; }
+body.quiz-presenting .ranking { margin:8px auto; padding:15px; }
+@media (max-height:760px) {
+  body.quiz-presenting .container { padding-top:6px; }
+  body.quiz-presenting .question { font-size:clamp(23px,2.8vw,36px); margin:3px auto; }
+  body.quiz-presenting .option { min-height:70px; padding:9px 12px; }
+  body.quiz-presenting .options { gap:7px; margin:6px auto; }
+  body.quiz-presenting .timer-panel { padding:5px 12px; margin:4px auto; }
+  body.quiz-presenting .response { margin:3px 0; }
+  body.quiz-presenting .controls button { padding:7px 16px; }
+}
+@media (max-width:640px) {
+  body.quiz-presenting .options { gap:7px; }
+  body.quiz-presenting .option { font-size:19px; padding:10px; }
+  .stat-option .stat-label { font-size:18px; }
+  .stat-option .stat-count { font-size:15px; }
+}
+
 </style>
 </head>
 
@@ -1072,6 +1141,8 @@ window.resetQuiz = async function() {
 
     stopTimer();
     quizMode = "waiting";
+    document.body.classList.remove("quiz-presenting");
+    window.scrollTo(0,0);
     currentQuestion = -1;
     currentAnswers = [];
     questionScores = [];
@@ -1131,9 +1202,8 @@ function displayQuestion() {
     .innerHTML =
     "제한시간 " +
     q.durationSec +
-    "초 · 최고 " +
-    q.points +
-    "점" +
+    "초" +
+    (q.type === "poll" ? "" : " · 최고 " + q.points + "점") +
     (important
       ? '<span class="important-badge">⭐ 중요문제 · 2배 점수</span>'
       : "");
@@ -1162,7 +1232,7 @@ function displayQuestion() {
 
     }
   );
-
+  if (q.type === "poll") renderAnswerStatistics(q);
 }
 
 
@@ -1207,6 +1277,8 @@ window.startQuiz = async function() {
   quizMode = "question";
 
 
+  document.body.classList.add("quiz-presenting");
+  window.scrollTo(0,0);
   document.getElementById("managementPanel")
     .style.display =
     "none";
@@ -1277,7 +1349,7 @@ window.startQuiz = async function() {
   document.getElementById("answerButton")
     .style.display =
     "inline-block";
-  document.getElementById("answerButton").textContent = q.type === "poll" ? "투표 마감 · 결과 보기" : "정답 공개";
+  document.getElementById("answerButton").textContent = questions[0].type === "poll" ? "투표 마감 · 결과 보기" : "정답 공개";
 
 
   document.getElementById("rankButton")
@@ -1481,200 +1553,74 @@ window.revealAnswer = async function() {
 ============================== */
 
 function showResults(q) {
+  const resultArea = document.getElementById("resultArea");
+  const answerBox = document.getElementById("correctAnswer");
+  const explanationBox = document.getElementById("explanation");
+  const resultBars = document.getElementById("resultBars");
+  resultBars.replaceChildren(); // 별도의 세로형 통계는 사용하지 않음
+  resultArea.style.display = "block";
+  const isPoll = q.type === "poll";
+  const correctText = Array.isArray(q.correct)
+    ? q.correct.join(q.type === "order" ? " → " : ", ")
+    : String(q.correct ?? "");
+  answerBox.style.display = isPoll ? "none" : "block";
+  answerBox.textContent = isPoll ? "" : "정답 : " + correctText;
+  explanationBox.textContent = q.explanation || "";
+  explanationBox.style.display = q.explanation ? "block" : "none";
+  renderAnswerStatistics(q);
+}
 
-  document.getElementById("resultArea")
-    .style.display =
-    "block";
-
-
-  let correctText;
-
-
-  if (q.type === "poll") { correctText = ""; } else if (Array.isArray(q.correct)) { correctText = q.correct.join(q.type === "order" ? " → " : ", "); } else { correctText = q.correct;
-
-  }
-
-
-  document.getElementById("correctAnswer")
-    .textContent = q.type === "poll" ? "" : "정답 : " + correctText;
-
-
-  document.getElementById("explanation")
-    .textContent =
-    q.explanation;
-
-
-  const resultBars =
-    document.getElementById("resultBars");
-
-
-  resultBars.innerHTML = "";
-
-
-  /*
-    순서 선택 문제는
-    단일 보기별 분포가 의미가 없으므로
-    제출한 순서 조합별로 집계
-  */
-
+function renderAnswerStatistics(q) {
+  const optionsDiv = document.getElementById("options");
+  const isPoll = q.type === "poll";
+  let entries;
   if (q.type === "order") {
-
-    const orderCounts = {};
-
-
-    currentAnswers.forEach(data => {
-
-      let answerText;
-
-
-      if (Array.isArray(data.answer)) {
-
-        answerText =
-          data.answer.join(" → ");
-
-      } else {
-
-        answerText =
-          String(data.answer)
-            .split(",")
-            .join(" → ");
-
-      }
-
-
-      if (!orderCounts[answerText]) {
-        orderCounts[answerText] = 0;
-      }
-
-
-      orderCounts[answerText]++;
-
-    });
-
-
-    const total =
-      currentAnswers.length;
-
-
-    Object.entries(orderCounts)
-      .sort((a,b) => b[1] - a[1])
-      .forEach(([answer, count]) => {
-
-        const percent =
-          total === 0
-            ? 0
-            : (count / total) * 100;
-
-
-        const row =
-          document.createElement("div");
-
-
-        row.className =
-          "result-row";
-
-
-        row.innerHTML = `
-          <div class="result-label">
-            ${answer} : ${count}명
-          </div>
-
-          <div class="bar-bg">
-            <div
-              class="bar"
-              style="width:${percent}%">
-            </div>
-          </div>
-        `;
-
-
-        resultBars.appendChild(row);
-
-      });
-
-
-    if (total === 0) {
-
-      resultBars.innerHTML =
-        "<div style='color:#777;'>응답이 없습니다.</div>";
-
+    const counts = new Map();
+    for (const data of currentAnswers) {
+      const key = Array.isArray(data.answer) ? data.answer.join(" → ") : String(data.answer ?? "").split(",").join(" → ");
+      counts.set(key, (counts.get(key) || 0) + 1);
     }
-
-
-    return;
-
+    entries = [...counts.entries()].sort((a,b)=>b[1]-a[1]);
+    if (!entries.length) entries = [["응답 없음",0]];
+    // 조합이 많을 때는 상위 4개와 기타를 합쳐 한 화면에 유지
+    if (entries.length > 4) {
+      const other = entries.slice(3).reduce((sum,item)=>sum+item[1],0);
+      entries = [...entries.slice(0,3),["기타 응답",other]];
+    }
+  } else {
+    entries = q.options.map(option => [option, currentAnswers.filter(data =>
+      q.type === "multi" ? Array.isArray(data.answer) && data.answer.includes(option) : data.answer === option
+    ).length]);
   }
-
-
-  /*
-    일반 선택형 / OX
-  */
-
-  const counts = {};
-
-
-  q.options.forEach(
-    option => {
-      counts[option] = 0;
-    }
-  );
-
-
-  currentAnswers.forEach(data => {
-
-    if (
-      counts[data.answer] !== undefined
-    ) {
-
-      counts[data.answer]++;
-
-    }
-
-  });
-
-
-  const total =
-    currentAnswers.length;
-
-
-  q.options.forEach(option => {
-
-    const count =
-      counts[option] || 0;
-
-
-    const percent =
-      total === 0
-        ? 0
-        : (count / total) * 100;
-
-
-    const row =
-      document.createElement("div");
-
-
-    row.className =
-      "result-row";
-
-
-    row.innerHTML = `
-      <div class="result-label">
-        ${option} : ${count}명 (${percent.toFixed(1)}%)
-      </div>
-
-      <div class="bar-bg">
-        <div
-          class="bar"
-          style="width:${percent}%">
-        </div>
-      </div>
-    `;
-
-
-    resultBars.appendChild(row);
-
-  });
-
+  const total = currentAnswers.length;
+  optionsDiv.replaceChildren();
+  for (let i=0; i<entries.length; i++) {
+    const [option,count] = entries[i];
+    const percent = total ? count / total * 100 : 0;
+    const card = document.createElement("div");
+    card.className = "option stat-option";
+    const correct = !isPoll && (Array.isArray(q.correct)
+      ? q.type === "multi" ? q.correct.includes(option) : q.type === "order" ? option === q.correct.join(" → ") : false
+      : option === q.correct);
+    if (correct) card.classList.add("correct-choice");
+    const heading = document.createElement("div");
+    heading.className = "stat-heading";
+    const label = document.createElement("span");
+    label.className = "stat-label";
+    label.textContent = (q.type === "ox" || q.type === "order" ? "" : (i+1)+". ") + option + (correct ? " ✓" : "");
+    const countText = document.createElement("span");
+    countText.className = "stat-count";
+    countText.textContent = `${count}명 (${percent.toFixed(1)}%)`;
+    heading.append(label,countText);
+    const track = document.createElement("div");
+    track.className = "stat-track";
+    const fill = document.createElement("div");
+    fill.className = "stat-fill";
+    fill.style.width = `${Math.min(100,percent)}%`;
+    track.appendChild(fill);
+    card.append(heading,track);
+    optionsDiv.appendChild(card);
+  }
 }
 
 
@@ -2059,7 +2005,10 @@ window.nextQuestion = async function() {
   document.getElementById("answerButton")
     .style.display =
     "inline-block";
+  document.getElementById("answerButton").textContent =
+    questions[currentQuestion].type === "poll" ? "투표 마감 · 결과 보기" : "정답 공개";
 
+  window.scrollTo(0,0);
 
   document.getElementById("rankButton")
     .style.display =
@@ -2159,6 +2108,11 @@ onValue(
       "responseCount"
     ).textContent =
       currentAnswers.length;
+    if (quizMode === "question" && questions[currentQuestion]?.type === "poll") {
+      renderAnswerStatistics(questions[currentQuestion]);
+    } else if (quizMode === "result" && questions[currentQuestion]) {
+      renderAnswerStatistics(questions[currentQuestion]);
+    }
 
   }
 );
