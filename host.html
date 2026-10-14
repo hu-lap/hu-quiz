@@ -625,10 +625,10 @@ body.quiz-presenting .lobby-set-choice{display:none!important}
       <button class="secondary" id="moveSelectedUp" type="button" disabled>▲ 위로</button>
       <button class="secondary" id="moveSelectedDown" type="button" disabled>▼ 아래로</button>
     </div>
-    <p class="set-hint">왼쪽 출제 체크박스와 별개로 ◯을 선택한 후 위·아래 버튼으로 문제 순서를 변경합니다.</p>
+    <p class="set-hint">체크박스로 문제를 선택하세요. 한 문제를 선택하면 순서를 이동할 수 있고, 여러 문제를 선택하면 한 번에 삭제할 수 있습니다. 세트의 모든 문제는 자동 출제됩니다.</p>
     <div id="setQuestionList" class="set-list"></div>
     <button class="secondary" id="addQuestionBtn" type="button">+ 문제 추가</button>
-    <button class="secondary" id="selectAllQuestionsBtn" type="button">전체 출제</button><button class="secondary" id="deselectAllQuestionsBtn" type="button">전체 제외</button>
+    <button class="secondary" id="selectAllQuestionsBtn" type="button">전체 선택</button><button class="secondary" id="deselectAllQuestionsBtn" type="button">선택 해제</button><button class="secondary" id="deleteSelectedQuestionsBtn" type="button">선택 문제 삭제</button>
      <button class="secondary" id="importSetBtn" type="button">📥 JSON 세트 일괄 가져오기</button><input id="importSetFile" type="file" accept=".json,application/json" style="display:none">
     <div id="setEditor" class="set-editor">
       <h3 id="editorTitle">문제 편집</h3>
@@ -971,24 +971,28 @@ const manageSetSelect = document.getElementById("manageSetSelect");
 setSelect.onchange=()=>{selectedSetId=setSelect.value;updateSetUI();};
 const setPanel = document.getElementById("setPanel");
 function closeSetManager(){setPanel.classList.remove("set-page-open");document.body.classList.remove("editing-sets");}
-document.getElementById("openSetManagerBtn").onclick=()=>{if(!adminAuthenticated)return;setPanel.classList.add("set-page-open");document.body.classList.add("editing-sets");};
+document.getElementById("openSetManagerBtn").onclick=()=>{if(!adminAuthenticated)return; if(!quizSets[selectedSetId]){selectedSetId=Object.entries(quizSets).sort((a,b)=>(a[1].name||"").localeCompare(b[1].name||"","ko"))[0]?.[0]||"";} updateSetUI();setPanel.classList.add("set-page-open");document.body.classList.add("editing-sets");};
 document.getElementById("closeSetManagerBtn").onclick=closeSetManager;
 const setMessage = document.getElementById("setMessage");
 const editor = document.getElementById("setEditor");
 function canEditSets(){ if (!adminAuthenticated) { alert("관리자 로그인이 필요합니다."); return false; } if (quizMode === "question" || quizMode === "result") { alert("퀴즈 진행 중에는 문제 세트를 편집할 수 없습니다."); return false; } return true; }
 function getSelectedSet(){ return quizSets[selectedSetId] || null; }
-function selectedQuestions(){ const setData=getSelectedSet(); return setData ? (setData.questions||[]).filter(q=>q.enabled!==false).map(q=>({type:q.type,text:q.text,options:q.options,correct:q.correct??null,explanation:q.explanation||"",durationSec:Number(q.durationSec)||10,points:Number(q.points ?? 1000)})) : []; }
-let reorderSelectedIndex = -1;
+function selectedQuestions(){ const setData=getSelectedSet(); return setData ? (setData.questions||[]).map(q=>({type:q.type,text:q.text,options:q.options,correct:q.correct??null,explanation:q.explanation||"",durationSec:Number(q.durationSec)||10,points:Number(q.points ?? 1000)})) : []; }
+let selectedQuestionIndices = new Set();
 let reorderSelectedSetId = "";
 const moveSelectedLabel=document.getElementById("moveSelectedLabel");
 const moveSelectedUp=document.getElementById("moveSelectedUp");
 const moveSelectedDown=document.getElementById("moveSelectedDown");
 function refreshMoveSelection(){
  const count=(getSelectedSet()?.questions||[]).length;
- if(reorderSelectedSetId!==selectedSetId||reorderSelectedIndex>=count){reorderSelectedIndex=-1;reorderSelectedSetId=selectedSetId;}
- moveSelectedLabel.textContent=reorderSelectedIndex<0?"이동할 문제를 선택하세요":`${reorderSelectedIndex+1}번 문제 선택됨`;
- moveSelectedUp.disabled=reorderSelectedIndex<=0||quizMode==="question"||quizMode==="result";
- moveSelectedDown.disabled=reorderSelectedIndex<0||reorderSelectedIndex>=count-1||quizMode==="question"||quizMode==="result";
+ if(reorderSelectedSetId!==selectedSetId){selectedQuestionIndices.clear();reorderSelectedSetId=selectedSetId;}
+ selectedQuestionIndices=new Set([...selectedQuestionIndices].filter(i=>i>=0&&i<count));
+ const n=selectedQuestionIndices.size;
+ const i=n===1?[...selectedQuestionIndices][0]:-1;
+ moveSelectedLabel.textContent=n===0?"이동할 문제를 선택하세요":n===1?`${i+1}번 문제 선택됨`:`${n}개 문제 선택됨 (이동은 1개만 가능)`;
+ moveSelectedUp.disabled=i<=0||quizMode==="question"||quizMode==="result";
+ moveSelectedDown.disabled=i<0||i>=count-1||quizMode==="question"||quizMode==="result";
+ document.getElementById("deleteSelectedQuestionsBtn").disabled=n===0||quizMode==="question"||quizMode==="result";
 }
 moveSelectedUp.onclick=()=>moveSelectedQuestion(-1);
 moveSelectedDown.onclick=()=>moveSelectedQuestion(1);
@@ -1003,19 +1007,17 @@ function updateSetUI(){
   const setData=getSelectedSet();const list=document.getElementById("setQuestionList");list.replaceChildren();
   if(setData){ (setData.questions||[]).forEach((q,i)=>{
     const row=document.createElement("div");row.className="set-item";
-    const checkbox=document.createElement("input");checkbox.type="checkbox";checkbox.checked=q.enabled!==false;checkbox.disabled=quizMode==="question"||quizMode==="result";checkbox.onchange=async()=>{if(!canEditSets())return;try{await set(ref(database,`quizSets/${selectedSetId}/questions/${i}/enabled`),checkbox.checked);}catch(e){alert("선택 저장 실패: 데이터베이스 권한을 확인하세요.");console.error(e);}};
-    const picker=document.createElement("input");picker.type="radio";picker.name="reorderQuestion";picker.className="reorder-picker";picker.title="이 문제를 순서 이동 대상으로 선택";picker.setAttribute("aria-label",`${i+1}번 문제 이동 대상으로 선택`);picker.checked=reorderSelectedSetId===selectedSetId&&reorderSelectedIndex===i;
-    picker.onchange=()=>{reorderSelectedIndex=i;reorderSelectedSetId=selectedSetId;list.querySelectorAll(".set-item").forEach((r,j)=>r.classList.toggle("move-selected",j===i));refreshMoveSelection();};
-    row.classList.toggle("move-selected",picker.checked);
-    const label=document.createElement("label");label.textContent=`${i+1}. ${q.text}`;label.onclick=()=>picker.click();
+    const checkbox=document.createElement("input");checkbox.type="checkbox";checkbox.checked=selectedQuestionIndices.has(i);checkbox.disabled=quizMode==="question"||quizMode==="result";checkbox.title="이 문제 선택";
+    checkbox.onchange=()=>{if(checkbox.checked)selectedQuestionIndices.add(i);else selectedQuestionIndices.delete(i);list.querySelectorAll(".set-item").forEach((r,j)=>r.classList.toggle("move-selected",selectedQuestionIndices.has(j)));refreshMoveSelection();};
+    row.classList.toggle("move-selected",checkbox.checked);
+    const label=document.createElement("label");label.textContent=`${i+1}. ${q.text}`;label.onclick=()=>checkbox.click();
     const edit=document.createElement("button");edit.textContent="수정";edit.onclick=()=>openQuestionEditor(i);
-    const del=document.createElement("button");del.textContent="삭제";del.onclick=()=>deleteQuestion(i);
     const copy=document.createElement("button");copy.textContent="복제";copy.className="set-action";copy.onclick=()=>duplicateQuestion(i);
-     row.append(picker,checkbox,label,edit,copy,del);list.appendChild(row);
+    row.append(checkbox,label,edit,copy);list.appendChild(row);
   }); }
   refreshMoveSelection();
-  const total=(setData?.questions||[]).length;const enabled=(setData?.questions||[]).filter(q=>q.enabled!==false).length;
-  setMessage.textContent=setLoading?"문제 세트를 불러오는 중입니다.":setData?`총 ${total}문제 · 출제 선택 ${enabled}문제 (선택한 문제만 순서대로 출제)` : "저장된 세트가 없습니다. '새 세트'를 눌러 만드세요.";
+  const total=(setData?.questions||[]).length;const enabled=total;
+  setMessage.textContent=setLoading?"문제 세트를 불러오는 중입니다.":setData?`총 ${total}문제 · 전체 자동 출제 (체크박스는 이동·삭제 선택용)` : "저장된 세트가 없습니다. '새 세트'를 눌러 만드세요.";
   document.getElementById("selectedSetInfo").textContent=setData?`선택한 세트: ${setData.name||"이름 없는 세트"} · 출제 ${enabled}문제`:"문제 세트를 선택하면 퀴즈를 시작할 수 있습니다.";
   document.getElementById("startButton").disabled=setLoading||enabled===0; document.getElementById("lobbyStartButton").disabled=setLoading||enabled===0;
 }
@@ -1086,7 +1088,7 @@ function collectEditorQuestion(){
  return {type,text,options,correct,explanation:document.getElementById("editExplanation").value.trim(),durationSec:Number(document.getElementById("editDuration").value),points};
 }
 document.getElementById("saveQuestionBtn").onclick=async()=>{if(!canEditSets())return;let q;try{q=collectEditorQuestion();}catch(e){alert(e.message);return;}
- const items=[...(getSelectedSet().questions||[])];q.enabled=editQuestionIndex<0?true:items[editQuestionIndex].enabled!==false;
+ const items=[...(getSelectedSet().questions||[])];q.enabled=true;
  if(editQuestionIndex<0)items.push(q);else items[editQuestionIndex]=q;
  try{await saveSetQuestions(items);editor.style.display="none";}catch(e){alert("문제 저장 실패: Firebase 규칙을 확인하세요.");console.error(e);}
 };
@@ -1098,20 +1100,26 @@ document.getElementById("previewQuestionBtn").onclick=()=>{let q;try{q=collectEd
 };
 async function moveSelectedQuestion(direction){
  if(!canEditSets())return;
- const i=reorderSelectedIndex;
+ const i=selectedQuestionIndices.size===1?[...selectedQuestionIndices][0]:-1;
  const items=[...(getSelectedSet()?.questions||[])];
  const j=i+direction;
  if(i<0||j<0||j>=items.length)return;
  [items[i],items[j]]=[items[j],items[i]];
  moveSelectedUp.disabled=true;moveSelectedDown.disabled=true;
- try{reorderSelectedIndex=j;await saveSetQuestions(items);updateSetUI();}
- catch(e){reorderSelectedIndex=i;alert("문제 순서 변경 실패");console.error(e);refreshMoveSelection();}
+ try{selectedQuestionIndices=new Set([j]);await saveSetQuestions(items);updateSetUI();}
+ catch(e){selectedQuestionIndices=new Set([i]);alert("문제 순서 변경 실패");console.error(e);refreshMoveSelection();}
 }
 async function duplicateQuestion(i){if(!canEditSets())return;const items=[...(getSelectedSet()?.questions||[])];const q=structuredClone(items[i]);q.text=q.text+" (복사본)";items.splice(i+1,0,q);try{await saveSetQuestions(items);}catch(e){alert("문제 복제 실패");console.error(e);}}
-async function toggleAllQuestions(enabled){if(!canEditSets())return;const items=(getSelectedSet()?.questions||[]).map(q=>({...q,enabled}));try{await saveSetQuestions(items);}catch(e){alert("출제 설정 저장 실패");console.error(e);}}
-document.getElementById("selectAllQuestionsBtn").onclick=()=>toggleAllQuestions(true);
-document.getElementById("deselectAllQuestionsBtn").onclick=()=>toggleAllQuestions(false);
-async function deleteQuestion(i){if(!canEditSets())return;if(!confirm("이 문제를 삭제할까요?"))return;const items=[...(getSelectedSet().questions||[])];items.splice(i,1);try{await saveSetQuestions(items);}catch(e){alert("문제 삭제 실패");console.error(e);}}
+document.getElementById("selectAllQuestionsBtn").onclick=()=>{selectedQuestionIndices=new Set((getSelectedSet()?.questions||[]).map((_,i)=>i));updateSetUI();};
+document.getElementById("deselectAllQuestionsBtn").onclick=()=>{selectedQuestionIndices.clear();updateSetUI();};
+document.getElementById("deleteSelectedQuestionsBtn").onclick=async()=>{
+ if(!canEditSets()||!selectedQuestionIndices.size)return;
+ const n=selectedQuestionIndices.size;
+ if(!confirm(`선택한 ${n}개 문제를 삭제할까요? 이 작업은 되돌릴 수 없습니다.`))return;
+ const items=(getSelectedSet()?.questions||[]).filter((_,i)=>!selectedQuestionIndices.has(i));
+ try{await saveSetQuestions(items);selectedQuestionIndices.clear();updateSetUI();}
+ catch(e){alert("선택 문제 삭제 실패");console.error(e);}
+};
 // 세트 전체를 새로 생성하며 기존 세트는 변경하지 않습니다.
 document.getElementById("importSetBtn").onclick=()=>{if(!canEditSets())return;document.getElementById("importSetFile").click();};
 document.getElementById("importSetFile").onchange=async e=>{
@@ -1126,7 +1134,7 @@ document.getElementById("importSetFile").onchange=async e=>{
    if(!valid)throw Error(`${i+1}번 정답 형식 오류`);
    const points=Number(q.points??1000),durationSec=Number(q.durationSec??20);
    if(![0,1000,2000].includes(points)||![10,20].includes(durationSec)||q.type==="poll"&&points!==0)throw Error(`${i+1}번 배점 또는 제한시간 오류`);
-   return {type:q.type,text:q.text,options:q.options,correct:q.correct??null,explanation:q.explanation||"",durationSec,points,enabled:q.enabled!==false};
+   return {type:q.type,text:q.text,options:q.options,correct:q.correct??null,explanation:q.explanation||"",durationSec,points,enabled:true};
   });
   if(!confirm(`'${payload.name}' 세트에 ${questionsToSave.length}문제를 새로 등록할까요?\n기존 세트는 유지됩니다.`))return;
   const newRef=push(ref(database,"quizSets"));await set(newRef,{name:payload.name.trim(),questions:questionsToSave});selectedSetId=newRef.key;updateSetUI();alert(`${questionsToSave.length}문제 등록 완료!`);
