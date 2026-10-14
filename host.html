@@ -478,6 +478,9 @@ body.quiz-presenting .lobby-set-choice{display:none!important}
 .lobby-quiz-choice #lobbyStartButton{align-self:center;padding:12px 42px;font-size:21px;margin-top:3px}
 .lobby-quiz-choice #selectedSetInfo{font-size:14px;margin:0}
 @media(max-height:820px){#lobbyArea #joinQR{width:clamp(170px,23vh,230px)!important;height:clamp(170px,23vh,230px)!important}#participantList{max-height:100px}}
+/* 문제 관리 추가 기능 */
+.choice-input-row{display:flex;gap:9px;align-items:center;margin:8px 0}.choice-input-row input[type=text]{flex:1;min-width:0;margin:0}.choice-input-row input[type=checkbox],.choice-input-row input[type=radio]{width:22px;height:22px;flex:none;margin:0}.choice-input-row .choice-num{font-weight:bold;min-width:28px}.order-answer-inputs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:10px 0}.order-answer-inputs select{margin:3px 0}.question-preview{padding:15px;border:1px solid #ddd;border-radius:12px;margin:12px 0;background:#f5f7fa}.preview-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}.preview-grid>div{padding:18px 10px;border-radius:12px;color:white;font-weight:bold;text-align:center;overflow-wrap:anywhere}.preview-grid>div:nth-child(4n+1){background:#e74c3c}.preview-grid>div:nth-child(4n+2){background:#3498db}.preview-grid>div:nth-child(4n+3){background:#f39c12}.preview-grid>div:nth-child(4n){background:#27ae60}.set-item .move-controls{display:flex;flex-direction:column}.set-item .move-controls button{margin:1px;padding:3px 8px}.set-item .move-controls button:disabled{opacity:.3}.set-item .set-action{white-space:nowrap}.set-item label{overflow-wrap:anywhere}#explanationToggle{font-size:16px;padding:8px 15px;margin:5px}
+@media(max-width:600px){.set-item{flex-wrap:wrap}.set-item label{min-width:55%}.order-answer-inputs{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
 </head>
 
@@ -611,13 +614,15 @@ body.quiz-presenting .lobby-set-choice{display:none!important}
     <div id="setMessage" class="set-hint">저장된 문제 세트를 불러오는 중입니다.</div>
     <div id="setQuestionList" class="set-list"></div>
     <button class="secondary" id="addQuestionBtn" type="button">+ 문제 추가</button>
-    <button class="secondary" id="importSetBtn" type="button">📥 JSON 세트 일괄 가져오기</button><input id="importSetFile" type="file" accept=".json,application/json" style="display:none">
+    <button class="secondary" id="selectAllQuestionsBtn" type="button">전체 출제</button><button class="secondary" id="deselectAllQuestionsBtn" type="button">전체 제외</button>
+     <button class="secondary" id="importSetBtn" type="button">📥 JSON 세트 일괄 가져오기</button><input id="importSetFile" type="file" accept=".json,application/json" style="display:none">
     <div id="setEditor" class="set-editor">
       <h3 id="editorTitle">문제 편집</h3>
       <label>문제 유형</label><select id="editType"><option value="choice">객관식</option><option value="ox">OX</option><option value="order">순서 선택</option><option value="multi">복수정답</option><option value="poll">투표 (정답 없음)</option></select>
       <label>문제 내용</label><textarea id="editText" rows="2"></textarea>
-      <label>보기 (한 줄에 하나씩, OX는 자동 설정)</label><textarea id="editOptions" rows="4"></textarea>
-      <label>정답 (객관식은 보기와 동일하게, 순서는 정답 순서대로 한 줄씩)</label><textarea id="editCorrect" rows="3"></textarea>
+      <div id="structuredChoices"><label>선택지 (각 항목을 따로 입력하고 정답을 체크하세요)</label><div id="choiceInputs"></div><div id="orderAnswerPanel" style="display:none"><label>정답 선택 순서</label><div id="orderAnswerInputs" class="order-answer-inputs"></div><p class="set-hint">화면에 표시된 1~4번 중 올바른 선택 순서를 지정합니다.</p></div></div>
+       <div id="legacyChoiceFields" style="display:none"><label>보기 (한 줄에 하나씩)</label><textarea id="editOptions" rows="4"></textarea><label>정답</label><textarea id="editCorrect" rows="3"></textarea></div>
+       <button type="button" class="secondary" id="previewQuestionBtn">👁 교육생 화면 미리보기</button><div id="questionPreview" class="question-preview" style="display:none"></div>
       <label>해설</label><textarea id="editExplanation" rows="2"></textarea>
       <div class="set-row"><label>제한시간 <select id="editDuration"><option value="10">10초</option><option value="20">20초</option></select></label><label>배점 <select id="editPoints"><option value="0">0점 (몸풀기)</option><option value="1000">1000점</option><option value="2000">2000점 (중요)</option></select></label></div>
       <button class="primary" id="saveQuestionBtn" type="button">문제 저장</button><button class="secondary" id="cancelQuestionBtn" type="button">취소</button>
@@ -691,7 +696,8 @@ body.quiz-presenting .lobby-set-choice{display:none!important}
       class="explanation">
     </div>
 
-    <div id="resultBars">
+    <button id="explanationToggle" class="secondary" type="button" style="display:none">해설 보기</button>
+     <div id="resultBars">
     </div>
 
   </div>
@@ -830,8 +836,6 @@ const ADMIN_EMAIL = "admin@hu-lab.com";
 const ADMIN_UID = "sx4AGkO3lobofS46Oz5CiTw6xuA3";
 let adminAuthenticated = false;
 let stopQuizSetsListener = null;
-let stopParticipantsListener = null;
-let stopAnswersListener = null;
 
 const authForm = document.getElementById("authForm");
 authForm.addEventListener("submit", async event => {
@@ -858,11 +862,7 @@ authPersistenceReady.then(() => onAuthStateChanged(auth, async user => {
   adminAuthenticated = Boolean(user && user.uid === ADMIN_UID);
   document.body.classList.toggle("admin-ready", adminAuthenticated);
   if (stopQuizSetsListener) { stopQuizSetsListener(); stopQuizSetsListener = null; }
-  if (stopParticipantsListener) { stopParticipantsListener(); stopParticipantsListener = null; }
-  if (stopAnswersListener) { stopAnswersListener(); stopAnswersListener = null; }
   if (adminAuthenticated) {
-    stopParticipantsListener = listenParticipants();
-    stopAnswersListener = listenAnswers();
     setLoading = true;
     setMessage.textContent = "문제 세트를 불러오는 중입니다.";
     stopQuizSetsListener = onValue(ref(database,"quizSets"), snapshot => {
@@ -878,8 +878,6 @@ authPersistenceReady.then(() => onAuthStateChanged(auth, async user => {
     quizSets = {};
     selectedSetId = "";
     setLoading = true;
-    document.getElementById("participantCount").textContent = "0";
-    document.getElementById("participantList").replaceChildren();
   }
   if (user && !adminAuthenticated) await signOut(auth);
 })).catch(error => {
@@ -981,7 +979,11 @@ function updateSetUI(){
     const label=document.createElement("label");label.textContent=`${i+1}. ${q.text}`;label.onclick=()=>checkbox.click();
     const edit=document.createElement("button");edit.textContent="수정";edit.onclick=()=>openQuestionEditor(i);
     const del=document.createElement("button");del.textContent="삭제";del.onclick=()=>deleteQuestion(i);
-    row.append(checkbox,label,edit,del);list.appendChild(row);
+    const moves=document.createElement("div");moves.className="move-controls";
+     const up=document.createElement("button");up.textContent="▲";up.title="문제 위로 이동";up.disabled=i===0;up.onclick=()=>moveQuestion(i,-1);
+     const down=document.createElement("button");down.textContent="▼";down.title="문제 아래로 이동";down.disabled=i===(setData.questions||[]).length-1;down.onclick=()=>moveQuestion(i,1);
+     moves.append(up,down);const copy=document.createElement("button");copy.textContent="복제";copy.className="set-action";copy.onclick=()=>duplicateQuestion(i);
+     row.append(checkbox,label,moves,edit,copy,del);list.appendChild(row);
   }); }
   const total=(setData?.questions||[]).length;const enabled=(setData?.questions||[]).filter(q=>q.enabled!==false).length;
   setMessage.textContent=setLoading?"문제 세트를 불러오는 중입니다.":setData?`총 ${total}문제 · 출제 선택 ${enabled}문제 (선택한 문제만 순서대로 출제)` : "저장된 세트가 없습니다. '새 세트'를 눌러 만드세요.";
@@ -994,22 +996,82 @@ manageSetSelect.onchange=()=>{selectedSetId=manageSetSelect.value;editor.style.d
 document.getElementById("newSetBtn").onclick=async()=>{if(!canEditSets())return;const name=prompt("새 문제 세트 이름을 입력하세요.");if(!name?.trim())return;try{const r=push(ref(database,"quizSets"));await set(r,{name:name.trim(),questions:[]});selectedSetId=r.key;updateSetUI();}catch(e){alert("세트 저장 실패: Firebase 규칙을 확인하세요.");console.error(e);}};
 document.getElementById("renameSetBtn").onclick=async()=>{if(!canEditSets())return;const d=getSelectedSet();if(!d)return;const name=prompt("변경할 세트 이름",d.name);if(!name?.trim())return;try{await set(ref(database,`quizSets/${selectedSetId}/name`),name.trim());}catch(e){alert("이름 변경 실패");console.error(e);}};
 document.getElementById("deleteSetBtn").onclick=async()=>{if(!canEditSets())return;const d=getSelectedSet();if(!d)return;if(!confirm(`'${d.name}' 세트와 모든 문제를 삭제할까요? 이 작업은 되돌릴 수 없습니다.`))return;try{await remove(ref(database,`quizSets/${selectedSetId}`));}catch(e){alert("세트 삭제 실패");console.error(e);}};
-function openQuestionEditor(i){if(!canEditSets())return;editQuestionIndex=i;const q=i<0?{type:"choice",text:"",options:["",""],correct:"",explanation:"",durationSec:10,points:1000}:getSelectedSet().questions[i];
-  document.getElementById("editorTitle").textContent=i<0?"문제 추가":"문제 수정";
-  document.getElementById("editType").value=q.type;document.getElementById("editText").value=q.text;document.getElementById("editOptions").value=(q.options||[]).join("\n");document.getElementById("editCorrect").value=Array.isArray(q.correct)?q.correct.join("\n"):(q.correct??"");
-  document.getElementById("editExplanation").value=q.explanation||"";document.getElementById("editDuration").value=String(q.durationSec||10);document.getElementById("editPoints").value=String(q.points??1000);editor.style.display="block";editor.scrollIntoView({behavior:"smooth",block:"nearest"});
+const choiceInputs=document.getElementById("choiceInputs");
+const orderAnswerInputs=document.getElementById("orderAnswerInputs");
+let editorLegacyMode=false;
+function editorType(){return document.getElementById("editType").value;}
+function renderEditorChoices(options=[],correct=null){
+ const type=editorType();const ox=type==="ox";const poll=type==="poll";const order=type==="order";const multi=type==="multi";
+ // 기존 2개/8개 보기 문제는 데이터 손실 없이 기존 입력 화면으로 편집
+ editorLegacyMode=!ox && options.length>4;
+ document.getElementById("structuredChoices").style.display=editorLegacyMode?"none":"block";
+ document.getElementById("legacyChoiceFields").style.display=editorLegacyMode?"block":"none";
+ if(editorLegacyMode){document.getElementById("editOptions").value=options.join("\n");document.getElementById("editCorrect").value=Array.isArray(correct)?correct.join("\n"):(correct??"");return;}
+ choiceInputs.replaceChildren();orderAnswerInputs.replaceChildren();
+ const count=ox?2:4;
+ for(let i=0;i<count;i++){
+  const row=document.createElement("div");row.className="choice-input-row";
+  const num=document.createElement("span");num.className="choice-num";num.textContent=ox?(i===0?"O":"X"):(i+1)+"번";
+  const inp=document.createElement("input");inp.type="text";inp.className="choice-text";inp.value=ox?(i===0?"O":"X"):(options[i]||"");inp.disabled=ox;inp.placeholder=`${i+1}번 선택지`;
+  const mark=document.createElement("input");mark.className="choice-correct";mark.type=(multi?"checkbox":"radio");mark.name="singleCorrect";mark.disabled=poll||order;mark.checked=Array.isArray(correct)?correct.includes(inp.value):correct===inp.value&&!!inp.value;
+  const label=document.createElement("span");label.textContent=poll?"":order?"순서 지정": "정답";label.style.fontSize="13px";
+  row.append(num,inp);if(!poll&&!order)row.append(mark,label);choiceInputs.appendChild(row);
+ }
+ if(order){
+  document.getElementById("orderAnswerPanel").style.display="block";
+  const orderNums=Array.isArray(correct)?correct.map(x=>options.indexOf(x)+1):[1,2,3,4];
+  for(let i=0;i<4;i++){
+   const wrap=document.createElement("div");const label=document.createElement("label");label.textContent=`${i+1}번째`;
+   const sel=document.createElement("select");sel.className="order-answer-select";
+   for(let n=1;n<=4;n++){const opt=document.createElement("option");opt.value=String(n);opt.textContent=n+"번";sel.appendChild(opt);}
+   sel.value=String(orderNums[i]||i+1);wrap.append(label,sel);orderAnswerInputs.appendChild(wrap);
+  }
+ }else document.getElementById("orderAnswerPanel").style.display="none";
+}
+function openQuestionEditor(i){if(!canEditSets())return;editQuestionIndex=i;const q=i<0?{type:"choice",text:"",options:["","","",""],correct:"",explanation:"",durationSec:10,points:1000}:getSelectedSet().questions[i];
+ document.getElementById("editorTitle").textContent=i<0?"문제 추가":"문제 수정";
+ document.getElementById("editType").value=q.type;document.getElementById("editText").value=q.text;
+ document.getElementById("editOptions").value=(q.options||[]).join("\n");document.getElementById("editCorrect").value=Array.isArray(q.correct)?q.correct.join("\n"):(q.correct??"");
+ document.getElementById("editExplanation").value=q.explanation||"";document.getElementById("editDuration").value=String(q.durationSec||10);document.getElementById("editPoints").value=String(q.points??1000);
+ renderEditorChoices(q.options||[],q.correct);document.getElementById("questionPreview").style.display="none";editor.style.display="block";editor.scrollIntoView({behavior:"smooth",block:"nearest"});
 }
 document.getElementById("addQuestionBtn").onclick=()=>{if(!getSelectedSet()){alert("먼저 문제 세트를 만들어 주세요.");return;}openQuestionEditor(-1);};
 document.getElementById("cancelQuestionBtn").onclick=()=>editor.style.display="none";
-document.getElementById("editType").onchange=()=>{if(document.getElementById("editType").value==="ox"){document.getElementById("editOptions").value="O\nX";document.getElementById("editCorrect").value="O";}};
-document.getElementById("saveQuestionBtn").onclick=async()=>{if(!canEditSets())return;const type=document.getElementById("editType").value,text=document.getElementById("editText").value.trim();let options=document.getElementById("editOptions").value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);if(type==="ox")options=["O","X"];
-  const raw=document.getElementById("editCorrect").value.trim();const correct=(type==="order"||type==="multi")?raw.split(/\r?\n/).map(x=>x.trim()).filter(Boolean):(type==="poll"?null:raw);
-  if(!text||options.length<2||options.length>8||new Set(options).size!==options.length){alert("문제와 중복 없는 보기 2~8개를 입력하세요.");return;}
-  if(type==="poll"?false:type==="order"?(correct.length!==options.length||correct.some(x=>!options.includes(x))||new Set(correct).size!==options.length):type==="multi"?(!correct.length||correct.some(x=>!options.includes(x))||new Set(correct).size!==correct.length):!options.includes(correct)){alert("정답이 보기와 일치하지 않습니다.");return;}
-  const items=[...(getSelectedSet().questions||[])];const q={type,text,options,correct,explanation:document.getElementById("editExplanation").value.trim(),durationSec:Number(document.getElementById("editDuration").value),points:Number(document.getElementById("editPoints").value),enabled:editQuestionIndex<0?true:items[editQuestionIndex].enabled!==false};
-  if(editQuestionIndex<0)items.push(q);else items[editQuestionIndex]=q;
-  try{await saveSetQuestions(items);editor.style.display="none";}catch(e){alert("문제 저장 실패: Firebase 규칙을 확인하세요.");console.error(e);}
+document.getElementById("editType").onchange=()=>{const type=editorType();renderEditorChoices(type==="ox"?["O","X"]:["","","",""],type==="ox"?"O":type==="order"?["","","",""]:null);if(type==="poll")document.getElementById("editPoints").value="0";};
+function collectEditorQuestion(){
+ const type=editorType(),text=document.getElementById("editText").value.trim();let options,correct;
+ if(editorLegacyMode){options=document.getElementById("editOptions").value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);const raw=document.getElementById("editCorrect").value.trim();correct=(type==="order"||type==="multi")?raw.split(/\r?\n/).map(x=>x.trim()).filter(Boolean):(type==="poll"?null:raw);}
+ else{
+  const rows=[...choiceInputs.querySelectorAll(".choice-input-row")];options=rows.map(r=>r.querySelector(".choice-text").value.trim());
+  if(type==="ox")options=["O","X"];
+  else if(type!=="order")options=options.filter(Boolean);
+  if(type==="poll")correct=null;
+  else if(type==="order")correct=[...orderAnswerInputs.querySelectorAll("select")].map(sel=>options[Number(sel.value)-1]);
+  else if(type==="multi")correct=rows.filter(r=>r.querySelector(".choice-correct")?.checked).map(r=>r.querySelector(".choice-text").value.trim());
+  else correct=rows.find(r=>r.querySelector(".choice-correct")?.checked)?.querySelector(".choice-text").value.trim()||"";
+ }
+ if(!text||options.length<2||options.length>8||options.some(x=>!x)||new Set(options).size!==options.length)throw Error("문제와 중복 없는 선택지를 입력하세요. 순서형은 4개를 모두 입력해야 합니다.");
+ if(type==="order"&&options.length!==4)throw Error("순서형 문제는 4개 선택지를 입력하세요.");
+ if(type!=="poll"&&(type==="order"?(correct.length!==options.length||correct.some(x=>!options.includes(x))||new Set(correct).size!==options.length):type==="multi"?(!correct.length||correct.some(x=>!options.includes(x))||new Set(correct).size!==correct.length):!options.includes(correct)))throw Error("정답을 올바르게 지정하세요. 순서형은 1~4번을 중복 없이 한 번씩 선택해야 합니다.");
+ const points=type==="poll"?0:Number(document.getElementById("editPoints").value);
+ return {type,text,options,correct,explanation:document.getElementById("editExplanation").value.trim(),durationSec:Number(document.getElementById("editDuration").value),points};
+}
+document.getElementById("saveQuestionBtn").onclick=async()=>{if(!canEditSets())return;let q;try{q=collectEditorQuestion();}catch(e){alert(e.message);return;}
+ const items=[...(getSelectedSet().questions||[])];q.enabled=editQuestionIndex<0?true:items[editQuestionIndex].enabled!==false;
+ if(editQuestionIndex<0)items.push(q);else items[editQuestionIndex]=q;
+ try{await saveSetQuestions(items);editor.style.display="none";}catch(e){alert("문제 저장 실패: Firebase 규칙을 확인하세요.");console.error(e);}
 };
+document.getElementById("previewQuestionBtn").onclick=()=>{let q;try{q=collectEditorQuestion();}catch(e){alert(e.message);return;}
+ const el=document.getElementById("questionPreview");if(el.style.display==="block"){el.style.display="none";return;}
+ el.replaceChildren();const title=document.createElement("h3");title.textContent=q.text;el.appendChild(title);const grid=document.createElement("div");grid.className="preview-grid";
+ q.options.forEach((opt,i)=>{const cell=document.createElement("div");cell.textContent=(q.type==="ox"?"":(i+1)+". ")+opt;grid.appendChild(cell);});el.appendChild(grid);
+ const note=document.createElement("p");note.className="set-hint";note.textContent=q.type==="order"?"교육생은 버튼을 정답 순서대로 누르고, 4번째 선택 시 자동 제출합니다.":"교육생 화면의 선택지 배치 예시입니다.";el.appendChild(note);el.style.display="block";
+};
+async function moveQuestion(i,direction){if(!canEditSets())return;const items=[...(getSelectedSet()?.questions||[])];const j=i+direction;if(j<0||j>=items.length)return;[items[i],items[j]]=[items[j],items[i]];try{await saveSetQuestions(items);}catch(e){alert("문제 순서 변경 실패");console.error(e);}}
+async function duplicateQuestion(i){if(!canEditSets())return;const items=[...(getSelectedSet()?.questions||[])];const q=structuredClone(items[i]);q.text=q.text+" (복사본)";items.splice(i+1,0,q);try{await saveSetQuestions(items);}catch(e){alert("문제 복제 실패");console.error(e);}}
+async function toggleAllQuestions(enabled){if(!canEditSets())return;const items=(getSelectedSet()?.questions||[]).map(q=>({...q,enabled}));try{await saveSetQuestions(items);}catch(e){alert("출제 설정 저장 실패");console.error(e);}}
+document.getElementById("selectAllQuestionsBtn").onclick=()=>toggleAllQuestions(true);
+document.getElementById("deselectAllQuestionsBtn").onclick=()=>toggleAllQuestions(false);
 async function deleteQuestion(i){if(!canEditSets())return;if(!confirm("이 문제를 삭제할까요?"))return;const items=[...(getSelectedSet().questions||[])];items.splice(i,1);try{await saveSetQuestions(items);}catch(e){alert("문제 삭제 실패");console.error(e);}}
 // 세트 전체를 새로 생성하며 기존 세트는 변경하지 않습니다.
 document.getElementById("importSetBtn").onclick=()=>{if(!canEditSets())return;document.getElementById("importSetFile").click();};
@@ -1620,7 +1682,11 @@ function showResults(q) {
   answerBox.style.display = isPoll ? "none" : "block";
   answerBox.textContent = isPoll ? "" : "정답 : " + correctText;
   explanationBox.textContent = q.explanation || "";
-  explanationBox.style.display = q.explanation ? "block" : "none";
+  explanationBox.style.display = "none";
+  const explainToggle=document.getElementById("explanationToggle");
+  explainToggle.style.display=q.explanation?"inline-block":"none";
+  explainToggle.textContent="해설 보기";
+  explainToggle.onclick=()=>{const visible=explanationBox.style.display==="block";explanationBox.style.display=visible?"none":"block";explainToggle.textContent=visible?"해설 보기":"해설 닫기";};
   renderAnswerStatistics(q);
 }
 
@@ -2083,8 +2149,7 @@ window.nextQuestion = async function() {
    참가자 실시간 표시
 ============================== */
 
-function listenParticipants() {
-return onValue(
+onValue(
   ref(database, "participants"),
   (snapshot) => {
 
@@ -2123,17 +2188,15 @@ return onValue(
     participantList.replaceChildren();
     names.forEach(name=>{const chip=document.createElement("span");chip.className="participant-chip";chip.textContent=name;participantList.appendChild(chip);});
 
-  }, error => { console.error("참가자 읽기 오류:", error); document.getElementById("participantList").textContent = "입장 정보 읽기 오류: " + error.message; }
+  }
 );
-}
 
 
 /* ==============================
    현재 문제 답변 실시간 수신
 ============================== */
 
-function listenAnswers() {
-return onValue(
+onValue(
   ref(database, "answers"),
   (snapshot) => {
 
@@ -2168,9 +2231,8 @@ return onValue(
       renderAnswerStatistics(questions[currentQuestion]);
     }
 
-  }, error => console.error("응답 읽기 오류:", error)
+  }
 );
-}
 
 
 /* ==============================
