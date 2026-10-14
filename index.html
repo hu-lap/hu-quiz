@@ -376,7 +376,7 @@ input {
     <button
       class="small-button reset-button"
       onclick="resetOrder()">
-      다시 선택
+      마지막 선택 취소
     </button>
 
     <button
@@ -1077,8 +1077,10 @@ function displayQuestion(questionIndex, state) {
     document.getElementById("orderInfo")
       .style.display = "block";
 
-    document.getElementById("orderControls")
-      .style.display = "block";
+        document.getElementById("orderControls")
+       .style.display = "block";
+    document.querySelector("#orderControls .submit-button").style.display=q.type==="order"?"none":"inline-block";
+    document.querySelector("#orderControls .reset-button").textContent=q.type==="order"?"마지막 선택 취소":"다시 선택";
 
     updateOrderDisplay();
     if(q.type === "multi")document.querySelector("#orderInfo .order-title").textContent="내가 선택한 보기";else document.querySelector("#orderInfo .order-title").textContent="내가 선택한 순서";
@@ -1163,7 +1165,7 @@ function selectOrder(
   if (
     submittedQuestion ===
     currentQuestion ||
-    timeExpired
+    timeExpired || answerSaving
   ) return;
 
 
@@ -1180,8 +1182,11 @@ function selectOrder(
   button.disabled = true;
 
 
+  button.textContent = (orderSelection.length) + "번째 ✓ " + option;
   updateOrderDisplay();
-
+  if(orderSelection.length === questions[currentQuestion].options.length){
+    submitOrder();
+  }
 }
 
 
@@ -1200,7 +1205,7 @@ function updateOrderDisplay() {
   } else {
 
     display.textContent =
-      orderSelection.join(" → ");
+      orderSelection.map(v => (questions[currentQuestion]?.options.indexOf(v) ?? -1) + 1).join(" → ");
 
   }
 
@@ -1217,19 +1222,16 @@ window.resetOrder = function() {
   ) return;
 
 
-  orderSelection = [];
-
-
-  document.querySelectorAll(".answer")
-    .forEach(btn => {
-
-      btn.disabled = false;
-
-      btn.classList.remove("used");
-
-    });
-
-
+  if(questions[currentQuestion]?.type === "order"){
+    const removed=orderSelection.pop();
+    if(removed===undefined)return;
+    const idx=questions[currentQuestion].options.indexOf(removed);
+    const btn=document.querySelectorAll(".answer")[idx];
+    if(btn){btn.disabled=false;btn.classList.remove("used");btn.textContent=(idx+1)+". "+removed;}
+  }else{
+    orderSelection=[];
+    document.querySelectorAll(".answer").forEach((btn,i)=>{btn.disabled=false;btn.classList.remove("used");});
+  }
   updateOrderDisplay();
 
 };
@@ -1441,7 +1443,7 @@ function showResult() {
 
   document.getElementById("explanation")
     .textContent =
-    q.explanation;
+    "";
 
 
   showScreen("resultScreen");
