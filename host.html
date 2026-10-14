@@ -830,6 +830,8 @@ const ADMIN_EMAIL = "admin@hu-lab.com";
 const ADMIN_UID = "sx4AGkO3lobofS46Oz5CiTw6xuA3";
 let adminAuthenticated = false;
 let stopQuizSetsListener = null;
+let stopParticipantsListener = null;
+let stopAnswersListener = null;
 
 const authForm = document.getElementById("authForm");
 authForm.addEventListener("submit", async event => {
@@ -856,7 +858,11 @@ authPersistenceReady.then(() => onAuthStateChanged(auth, async user => {
   adminAuthenticated = Boolean(user && user.uid === ADMIN_UID);
   document.body.classList.toggle("admin-ready", adminAuthenticated);
   if (stopQuizSetsListener) { stopQuizSetsListener(); stopQuizSetsListener = null; }
+  if (stopParticipantsListener) { stopParticipantsListener(); stopParticipantsListener = null; }
+  if (stopAnswersListener) { stopAnswersListener(); stopAnswersListener = null; }
   if (adminAuthenticated) {
+    stopParticipantsListener = listenParticipants();
+    stopAnswersListener = listenAnswers();
     setLoading = true;
     setMessage.textContent = "문제 세트를 불러오는 중입니다.";
     stopQuizSetsListener = onValue(ref(database,"quizSets"), snapshot => {
@@ -872,6 +878,8 @@ authPersistenceReady.then(() => onAuthStateChanged(auth, async user => {
     quizSets = {};
     selectedSetId = "";
     setLoading = true;
+    document.getElementById("participantCount").textContent = "0";
+    document.getElementById("participantList").replaceChildren();
   }
   if (user && !adminAuthenticated) await signOut(auth);
 })).catch(error => {
@@ -2075,7 +2083,8 @@ window.nextQuestion = async function() {
    참가자 실시간 표시
 ============================== */
 
-onValue(
+function listenParticipants() {
+return onValue(
   ref(database, "participants"),
   (snapshot) => {
 
@@ -2114,15 +2123,17 @@ onValue(
     participantList.replaceChildren();
     names.forEach(name=>{const chip=document.createElement("span");chip.className="participant-chip";chip.textContent=name;participantList.appendChild(chip);});
 
-  }
+  }, error => { console.error("참가자 읽기 오류:", error); document.getElementById("participantList").textContent = "입장 정보 읽기 오류: " + error.message; }
 );
+}
 
 
 /* ==============================
    현재 문제 답변 실시간 수신
 ============================== */
 
-onValue(
+function listenAnswers() {
+return onValue(
   ref(database, "answers"),
   (snapshot) => {
 
@@ -2157,8 +2168,9 @@ onValue(
       renderAnswerStatistics(questions[currentQuestion]);
     }
 
-  }
+  }, error => console.error("응답 읽기 오류:", error)
 );
+}
 
 
 /* ==============================
