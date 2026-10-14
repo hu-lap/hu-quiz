@@ -480,6 +480,13 @@ body.quiz-presenting .lobby-set-choice{display:none!important}
 @media(max-height:820px){#lobbyArea #joinQR{width:clamp(170px,23vh,230px)!important;height:clamp(170px,23vh,230px)!important}#participantList{max-height:100px}}
 /* 문제 관리 추가 기능 */
 .choice-input-row{display:flex;gap:9px;align-items:center;margin:8px 0}.choice-input-row input[type=text]{flex:1;min-width:0;margin:0}.choice-input-row input[type=checkbox],.choice-input-row input[type=radio]{width:22px;height:22px;flex:none;margin:0}.choice-input-row .choice-num{font-weight:bold;min-width:28px}.order-answer-inputs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:10px 0}.order-answer-inputs select{margin:3px 0}.question-preview{padding:15px;border:1px solid #ddd;border-radius:12px;margin:12px 0;background:#f5f7fa}.preview-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}.preview-grid>div{padding:18px 10px;border-radius:12px;color:white;font-weight:bold;text-align:center;overflow-wrap:anywhere}.preview-grid>div:nth-child(4n+1){background:#e74c3c}.preview-grid>div:nth-child(4n+2){background:#3498db}.preview-grid>div:nth-child(4n+3){background:#f39c12}.preview-grid>div:nth-child(4n){background:#27ae60}.set-item .move-controls{display:flex;flex-direction:column}.set-item .move-controls button{margin:1px;padding:3px 8px}.set-item .move-controls button:disabled{opacity:.3}.set-item .set-action{white-space:nowrap}.set-item label{overflow-wrap:anywhere}#explanationToggle{font-size:16px;padding:8px 15px;margin:5px}
+/* 선택한 문제만 공통 버튼으로 이동 */
+.question-move-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:15px;padding:10px 12px;background:#f1f4f8;border-radius:12px}
+.question-move-toolbar #moveSelectedLabel{flex:1;min-width:160px;font-weight:700;font-size:15px}
+.question-move-toolbar button{margin:0!important}
+.set-item .reorder-picker{width:21px;height:21px;flex:none;accent-color:#222;cursor:pointer}
+.set-item.move-selected{background:#edf3ff;border-radius:9px}
+@media(max-width:600px){.top-right{gap:5px}.top-right .manage-button{padding:7px 8px;font-size:12px}.status{padding:8px 10px;font-size:13px}.logo{font-size:20px}.question-move-toolbar #moveSelectedLabel{flex-basis:100%}}
 @media(max-width:600px){.set-item{flex-wrap:wrap}.set-item label{min-width:55%}.order-answer-inputs{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
 </head>
@@ -509,6 +516,8 @@ body.quiz-presenting .lobby-set-choice{display:none!important}
       <div id="status" class="status">
         대기 중
       </div>
+
+      <button type="button" id="openSetManagerBtn" class="manage-button">⚙ 문제 관리</button>
 
       <button
         class="manage-button"
@@ -552,7 +561,6 @@ body.quiz-presenting .lobby-set-choice{display:none!important}
 
 
   <div id="lobbyArea">
-    <div class="lobby-top-actions"><button type="button" id="openSetManagerBtn" class="secondary">⚙ 문제 관리</button></div>
 
     <h2 style="font-size:clamp(26px,3vw,39px);margin:10px auto 14px;">📱 HU Quiz 참여하기</h2>
     <div style="margin:8px auto 12px;">
@@ -612,6 +620,12 @@ body.quiz-presenting .lobby-set-choice{display:none!important}
     <div class="set-row"><button class="secondary" id="newSetBtn" type="button">새 세트</button><button class="secondary" id="renameSetBtn" type="button">이름 변경</button><button class="secondary" id="deleteSetBtn" type="button">세트 삭제</button></div>
     <div class="set-manager-choice"><label for="manageSetSelect">편집할 문제 세트</label><select id="manageSetSelect" aria-label="편집할 문제 세트"></select></div>
     <div id="setMessage" class="set-hint">저장된 문제 세트를 불러오는 중입니다.</div>
+    <div class="question-move-toolbar" aria-label="문제 순서 변경">
+      <span id="moveSelectedLabel">이동할 문제를 선택하세요</span>
+      <button class="secondary" id="moveSelectedUp" type="button" disabled>▲ 위로</button>
+      <button class="secondary" id="moveSelectedDown" type="button" disabled>▼ 아래로</button>
+    </div>
+    <p class="set-hint">왼쪽 출제 체크박스와 별개로 ◯을 선택한 후 위·아래 버튼으로 문제 순서를 변경합니다.</p>
     <div id="setQuestionList" class="set-list"></div>
     <button class="secondary" id="addQuestionBtn" type="button">+ 문제 추가</button>
     <button class="secondary" id="selectAllQuestionsBtn" type="button">전체 출제</button><button class="secondary" id="deselectAllQuestionsBtn" type="button">전체 제외</button>
@@ -964,6 +978,20 @@ const editor = document.getElementById("setEditor");
 function canEditSets(){ if (!adminAuthenticated) { alert("관리자 로그인이 필요합니다."); return false; } if (quizMode === "question" || quizMode === "result") { alert("퀴즈 진행 중에는 문제 세트를 편집할 수 없습니다."); return false; } return true; }
 function getSelectedSet(){ return quizSets[selectedSetId] || null; }
 function selectedQuestions(){ const setData=getSelectedSet(); return setData ? (setData.questions||[]).filter(q=>q.enabled!==false).map(q=>({type:q.type,text:q.text,options:q.options,correct:q.correct??null,explanation:q.explanation||"",durationSec:Number(q.durationSec)||10,points:Number(q.points ?? 1000)})) : []; }
+let reorderSelectedIndex = -1;
+let reorderSelectedSetId = "";
+const moveSelectedLabel=document.getElementById("moveSelectedLabel");
+const moveSelectedUp=document.getElementById("moveSelectedUp");
+const moveSelectedDown=document.getElementById("moveSelectedDown");
+function refreshMoveSelection(){
+ const count=(getSelectedSet()?.questions||[]).length;
+ if(reorderSelectedSetId!==selectedSetId||reorderSelectedIndex>=count){reorderSelectedIndex=-1;reorderSelectedSetId=selectedSetId;}
+ moveSelectedLabel.textContent=reorderSelectedIndex<0?"이동할 문제를 선택하세요":`${reorderSelectedIndex+1}번 문제 선택됨`;
+ moveSelectedUp.disabled=reorderSelectedIndex<=0||quizMode==="question"||quizMode==="result";
+ moveSelectedDown.disabled=reorderSelectedIndex<0||reorderSelectedIndex>=count-1||quizMode==="question"||quizMode==="result";
+}
+moveSelectedUp.onclick=()=>moveSelectedQuestion(-1);
+moveSelectedDown.onclick=()=>moveSelectedQuestion(1);
 function updateSetUI(){
   const prev=selectedSetId;
   setSelect.replaceChildren(); manageSetSelect.replaceChildren();
@@ -976,15 +1004,16 @@ function updateSetUI(){
   if(setData){ (setData.questions||[]).forEach((q,i)=>{
     const row=document.createElement("div");row.className="set-item";
     const checkbox=document.createElement("input");checkbox.type="checkbox";checkbox.checked=q.enabled!==false;checkbox.disabled=quizMode==="question"||quizMode==="result";checkbox.onchange=async()=>{if(!canEditSets())return;try{await set(ref(database,`quizSets/${selectedSetId}/questions/${i}/enabled`),checkbox.checked);}catch(e){alert("선택 저장 실패: 데이터베이스 권한을 확인하세요.");console.error(e);}};
-    const label=document.createElement("label");label.textContent=`${i+1}. ${q.text}`;label.onclick=()=>checkbox.click();
+    const picker=document.createElement("input");picker.type="radio";picker.name="reorderQuestion";picker.className="reorder-picker";picker.title="이 문제를 순서 이동 대상으로 선택";picker.setAttribute("aria-label",`${i+1}번 문제 이동 대상으로 선택`);picker.checked=reorderSelectedSetId===selectedSetId&&reorderSelectedIndex===i;
+    picker.onchange=()=>{reorderSelectedIndex=i;reorderSelectedSetId=selectedSetId;list.querySelectorAll(".set-item").forEach((r,j)=>r.classList.toggle("move-selected",j===i));refreshMoveSelection();};
+    row.classList.toggle("move-selected",picker.checked);
+    const label=document.createElement("label");label.textContent=`${i+1}. ${q.text}`;label.onclick=()=>picker.click();
     const edit=document.createElement("button");edit.textContent="수정";edit.onclick=()=>openQuestionEditor(i);
     const del=document.createElement("button");del.textContent="삭제";del.onclick=()=>deleteQuestion(i);
-    const moves=document.createElement("div");moves.className="move-controls";
-     const up=document.createElement("button");up.textContent="▲";up.title="문제 위로 이동";up.disabled=i===0;up.onclick=()=>moveQuestion(i,-1);
-     const down=document.createElement("button");down.textContent="▼";down.title="문제 아래로 이동";down.disabled=i===(setData.questions||[]).length-1;down.onclick=()=>moveQuestion(i,1);
-     moves.append(up,down);const copy=document.createElement("button");copy.textContent="복제";copy.className="set-action";copy.onclick=()=>duplicateQuestion(i);
-     row.append(checkbox,label,moves,edit,copy,del);list.appendChild(row);
+    const copy=document.createElement("button");copy.textContent="복제";copy.className="set-action";copy.onclick=()=>duplicateQuestion(i);
+     row.append(picker,checkbox,label,edit,copy,del);list.appendChild(row);
   }); }
+  refreshMoveSelection();
   const total=(setData?.questions||[]).length;const enabled=(setData?.questions||[]).filter(q=>q.enabled!==false).length;
   setMessage.textContent=setLoading?"문제 세트를 불러오는 중입니다.":setData?`총 ${total}문제 · 출제 선택 ${enabled}문제 (선택한 문제만 순서대로 출제)` : "저장된 세트가 없습니다. '새 세트'를 눌러 만드세요.";
   document.getElementById("selectedSetInfo").textContent=setData?`선택한 세트: ${setData.name||"이름 없는 세트"} · 출제 ${enabled}문제`:"문제 세트를 선택하면 퀴즈를 시작할 수 있습니다.";
@@ -1067,7 +1096,17 @@ document.getElementById("previewQuestionBtn").onclick=()=>{let q;try{q=collectEd
  q.options.forEach((opt,i)=>{const cell=document.createElement("div");cell.textContent=(q.type==="ox"?"":(i+1)+". ")+opt;grid.appendChild(cell);});el.appendChild(grid);
  const note=document.createElement("p");note.className="set-hint";note.textContent=q.type==="order"?"교육생은 버튼을 정답 순서대로 누르고, 4번째 선택 시 자동 제출합니다.":"교육생 화면의 선택지 배치 예시입니다.";el.appendChild(note);el.style.display="block";
 };
-async function moveQuestion(i,direction){if(!canEditSets())return;const items=[...(getSelectedSet()?.questions||[])];const j=i+direction;if(j<0||j>=items.length)return;[items[i],items[j]]=[items[j],items[i]];try{await saveSetQuestions(items);}catch(e){alert("문제 순서 변경 실패");console.error(e);}}
+async function moveSelectedQuestion(direction){
+ if(!canEditSets())return;
+ const i=reorderSelectedIndex;
+ const items=[...(getSelectedSet()?.questions||[])];
+ const j=i+direction;
+ if(i<0||j<0||j>=items.length)return;
+ [items[i],items[j]]=[items[j],items[i]];
+ moveSelectedUp.disabled=true;moveSelectedDown.disabled=true;
+ try{reorderSelectedIndex=j;await saveSetQuestions(items);updateSetUI();}
+ catch(e){reorderSelectedIndex=i;alert("문제 순서 변경 실패");console.error(e);refreshMoveSelection();}
+}
 async function duplicateQuestion(i){if(!canEditSets())return;const items=[...(getSelectedSet()?.questions||[])];const q=structuredClone(items[i]);q.text=q.text+" (복사본)";items.splice(i+1,0,q);try{await saveSetQuestions(items);}catch(e){alert("문제 복제 실패");console.error(e);}}
 async function toggleAllQuestions(enabled){if(!canEditSets())return;const items=(getSelectedSet()?.questions||[]).map(q=>({...q,enabled}));try{await saveSetQuestions(items);}catch(e){alert("출제 설정 저장 실패");console.error(e);}}
 document.getElementById("selectAllQuestionsBtn").onclick=()=>toggleAllQuestions(true);
