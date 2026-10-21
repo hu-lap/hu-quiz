@@ -537,6 +537,37 @@ body:not(.quiz-presenting) #lobbyArea{
   body.quiz-presenting .options{grid-template-columns:1fr}
   body.quiz-presenting .option{min-height:60px}
 }
+
+/* v3: 실제 대기화면 전체에 메인 사진을 적용. 기존의 90% 덮개 제거 */
+body.admin-ready:not(.quiz-presenting){
+ background:linear-gradient(90deg,rgba(7,30,48,.52),rgba(7,30,48,.18)),url("images/main.png") center center/cover fixed!important;
+}
+body.admin-ready:not(.quiz-presenting) .container{background:transparent!important;min-height:100dvh}
+body.admin-ready:not(.quiz-presenting) .top{background:rgba(255,255,255,.94);border-radius:16px;padding:12px 18px;box-shadow:0 5px 22px #102c4033}
+body.admin-ready:not(.quiz-presenting) #lobbyArea{
+ background:rgba(245,250,253,.87)!important;
+ backdrop-filter:blur(7px);
+ -webkit-backdrop-filter:blur(7px);
+ max-width:920px;margin:18px auto;padding:clamp(18px,3vw,34px)!important;
+ border:1px solid rgba(255,255,255,.8);border-radius:24px;
+ box-shadow:0 18px 60px #091e3260;
+}
+body.admin-ready:not(.quiz-presenting) #lobbyArea h2{color:#153b57}
+body.admin-ready:not(.quiz-presenting) #participantList{min-height:64px;max-height:138px;overflow-y:auto;background:rgba(255,255,255,.65);border-radius:14px;padding:12px}
+body.admin-ready:not(.quiz-presenting) .lobby-quiz-choice{background:rgba(255,255,255,.65);border-radius:16px;padding:18px;max-width:780px}
+body.admin-ready:not(.quiz-presenting) #lobbyStartButton{min-height:52px}
+@media(max-width:700px){
+ body.admin-ready:not(.quiz-presenting){background-attachment:scroll!important}
+ body.admin-ready:not(.quiz-presenting) .container{padding:10px!important}
+ body.admin-ready:not(.quiz-presenting) #lobbyArea{margin:12px auto;padding:18px 12px!important}
+ body.admin-ready:not(.quiz-presenting) #lobbyArea #joinQR{display:none!important}
+ body.admin-ready:not(.quiz-presenting) #lobbyArea h2{font-size:23px!important}
+ body.admin-ready:not(.quiz-presenting) #participantList{max-height:30dvh;justify-content:flex-start}
+ body.admin-ready:not(.quiz-presenting) .lobby-quiz-choice{padding:14px 10px}
+ body.admin-ready:not(.quiz-presenting) .lobby-quiz-choice select{min-width:0;width:100%}
+ body.admin-ready:not(.quiz-presenting) .lobby-quiz-choice #lobbyStartButton{width:100%;max-width:350px}
+}
+
 </style>
 </head>
 
