@@ -568,6 +568,58 @@ body.admin-ready:not(.quiz-presenting) #lobbyStartButton{min-height:52px}
  body.admin-ready:not(.quiz-presenting) .lobby-quiz-choice #lobbyStartButton{width:100%;max-width:350px}
 }
 
+
+/* HU Quiz 2026 - 화면 레이아웃 개편 */
+:root{--hu-navy:#123d60;--hu-blue:#207ca9;--hu-card:rgba(255,255,255,.95)}
+body.admin-ready:not(.quiz-presenting) #lobbyArea{max-width:980px!important;padding:clamp(16px,2.5vw,30px)!important;background:rgba(247,251,255,.93)!important}
+body.admin-ready:not(.quiz-presenting) #lobbyArea h2{font-size:clamp(25px,2.8vw,36px)!important;margin:3px auto 7px!important}
+body.admin-ready:not(.quiz-presenting) #lobbyArea #joinQR{width:clamp(210px,29vh,320px)!important;height:clamp(210px,29vh,320px)!important}
+body.admin-ready:not(.quiz-presenting) #participantList{min-height:92px;max-height:128px;background:#f0f6fb;border:1px solid #dceaf2;padding:12px}
+.hu-participant-heading{display:flex;align-items:baseline;justify-content:center;gap:12px;margin:15px 0 3px;font-size:22px;font-weight:800}
+.hu-participant-heading small{font-size:13px;color:#67839a;font-weight:500}
+body.admin-ready:not(.quiz-presenting) .lobby-quiz-choice{padding:12px 18px!important;gap:7px}
+body.admin-ready:not(.quiz-presenting) #lobbyStartButton{background:#126eaa;box-shadow:0 8px 20px #14577c33}
+body.quiz-presenting .container{padding:12px clamp(15px,3vw,50px) 18px;gap:0}
+body.quiz-presenting .top{padding:5px 8px;margin-bottom:8px}
+body.quiz-presenting .logo{font-size:clamp(20px,2vw,27px);color:#123d60}
+body.quiz-presenting #questionArea{display:grid!important;grid-template-columns:minmax(0,1fr) auto;align-items:start;column-gap:16px;max-width:1280px;margin:0 auto}
+body.quiz-presenting #questionNumber{grid-column:1;margin:3px 0 6px;text-align:left;font-size:17px;font-weight:700;color:#245d82}
+body.quiz-presenting #questionText{grid-column:1;grid-row:2;margin:0 0 8px;padding:clamp(16px,2vw,28px);font-size:clamp(24px,3vw,43px);text-align:left;min-height:86px;display:flex;align-items:center;justify-content:center}
+body.quiz-presenting #questionMeta{grid-column:1;grid-row:3;margin:0 0 8px;text-align:left;font-size:15px;font-weight:600}
+body.quiz-presenting #hostPicture{grid-column:1;grid-row:4;max-height:20vh;margin:4px auto}
+body.quiz-presenting #timerPanel{grid-column:2;grid-row:1 / span 3;width:176px;min-height:168px;margin:0;padding:13px;display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:9px;background:#ffffffed;border-radius:23px}
+.hu-timer-copy{display:flex;flex-direction:column;gap:2px;align-items:center;color:#365a74;font-size:16px}
+.hu-timer-copy span{font-size:11px;color:#8396a4}
+.hu-clock{--clock-progress:100%;width:112px;height:112px;border-radius:50%;background:conic-gradient(#207ca9 var(--clock-progress),#dfe9ee 0);padding:9px;display:grid;place-items:center;flex:none;transition:background .1s linear}
+.hu-clock-inner{width:100%;height:100%;border-radius:50%;background:white;display:grid;place-items:center}
+.hu-clock .timer-value{font-size:clamp(19px,2vw,25px)!important;color:#123d60;font-weight:900;white-space:nowrap}
+.hu-clock.low{background:conic-gradient(#df9b3e var(--clock-progress),#f0e7db 0)}
+.hu-clock.critical{background:conic-gradient(#d65353 var(--clock-progress),#f2dddd 0)}
+body.quiz-presenting .timer-bar-bg{display:none}
+body.quiz-presenting #options{grid-column:1 / -1;max-width:none;width:100%;margin:9px 0 4px;gap:14px}
+body.quiz-presenting #options .option{min-height:clamp(92px,15vh,148px);font-size:clamp(23px,2.5vw,35px);background:#ffffffed;box-shadow:0 8px 24px #123d601c;border-radius:19px}
+body.quiz-presenting #responseArea{grid-column:1 / -1;background:#ffffffdd;border-radius:30px;padding:9px 22px;width:max-content;max-width:100%;margin:8px auto;font-size:21px;font-weight:700}
+body.quiz-presenting #resultArea{max-width:1200px;width:100%;margin:8px auto}
+body.quiz-presenting .controls{margin-top:auto;padding-top:8px}
+body.quiz-presenting .controls .primary{background:#126eaa}
+body.quiz-presenting.hu-warmup #questionNumber::before{content:'🎈 몸풀기 게임  ·  ';color:#b86a22}
+body.quiz-presenting.hu-warmup #questionText{border:2px solid #f3d6a8;background:#fffaf0!important;box-shadow:0 9px 26px #ad783b22}
+body.quiz-presenting.hu-warmup #options .option{border:2px solid #efdfca;border-left-width:8px}
+body.quiz-presenting.hu-warmup #questionMeta{color:#a66b35}
+@media(max-width:720px){
+ body.admin-ready:not(.quiz-presenting) #lobbyArea #joinQR{display:none!important}
+ body.admin-ready:not(.quiz-presenting) #participantList{max-height:28vh}
+ body.quiz-presenting #questionArea{grid-template-columns:minmax(0,1fr) 105px;column-gap:8px}
+ body.quiz-presenting #questionNumber{font-size:13px}
+ body.quiz-presenting #questionText{font-size:clamp(20px,5vw,27px);padding:14px;min-height:80px}
+ body.quiz-presenting #timerPanel{width:105px;min-height:116px;padding:8px;gap:4px}
+ .hu-timer-copy{font-size:12px}.hu-timer-copy span{display:none}
+ .hu-clock{width:77px;height:77px;padding:6px}.hu-clock .timer-value{font-size:17px!important}
+ body.quiz-presenting #options{gap:8px}body.quiz-presenting #options .option{min-height:80px;font-size:18px}
+ body.quiz-presenting #responseArea{font-size:16px;padding:8px 15px}
+}
+@media(max-height:730px) and (min-width:721px){body.quiz-presenting #options .option{min-height:78px}body.quiz-presenting #timerPanel{min-height:135px}.hu-clock{width:86px;height:86px}}
+
 </style>
 </head>
 
@@ -684,7 +736,8 @@ body.admin-ready:not(.quiz-presenting) #lobbyStartButton{min-height:52px}
       입장
     </div>
 
-    <div id="participantList" aria-label="입장한 교육생 닉네임"></div>
+    <div class="hu-participant-heading"><span>참가자</span><small>입장한 교육생</small></div>
+    <div id="participantList" aria-label="참가자 닉네임"></div>
 
     <div class="lobby-quiz-choice">
       <label for="setSelect">출제할 문제 세트</label>
@@ -747,13 +800,9 @@ body.admin-ready:not(.quiz-presenting) #lobbyStartButton{min-height:52px}
     <div id="questionMeta" class="question-meta"></div><img id="hostPicture" class="hu-picture" alt="문제 이미지">
 
     <div id="timerPanel" class="timer-panel">
-      <div class="timer-top">
-        <div class="timer-title">남은 시간</div>
-        <div id="timerValue" class="timer-value">--</div>
-      </div>
-      <div class="timer-bar-bg">
-        <div id="timerBar" class="timer-bar"></div>
-      </div>
+      <div class="hu-timer-copy"><strong>남은 시간</strong><span>시간 안에 답변하세요</span></div>
+      <div class="hu-clock" id="hostClock"><div class="hu-clock-inner"><span id="timerValue" class="timer-value">--</span></div></div>
+      <div class="timer-bar-bg" aria-hidden="true"><div id="timerBar" class="timer-bar"></div></div>
     </div>
 
     <div
@@ -995,7 +1044,7 @@ document.getElementById("logoutButton").addEventListener("click", async () => {
 const HU_BACKGROUNDS=["images/nuclear_dome_01.png","images/human_action_01.png","images/nuclear_dome_02.png","images/human_action_02.png"];
 function huBackground(q,index){const mode=q?.imageMode||"auto";if(mode==="none")return {mode,path:""};if(mode==="custom"&&q?.imagePath)return {mode,path:q.imagePath};return {mode:"auto",path:HU_BACKGROUNDS[index%HU_BACKGROUNDS.length]};}
 function huApplyBackground(q,index,target,picture){const v=huBackground(q,index);const el=document.getElementById(target);const img=document.getElementById(picture);if(v.mode==="none"){el.style.setProperty("--hu-scene","linear-gradient(#e9f0f1,#e9f0f1)");img.classList.remove("is-visible");img.removeAttribute("src");}else if(v.mode==="custom"){el.style.setProperty("--hu-scene","linear-gradient(#e9f0f1,#e9f0f1)");img.src=v.path;img.classList.add("is-visible");img.onerror=()=>{img.classList.remove("is-visible");};}else{el.style.setProperty("--hu-scene",`url("${v.path}")`);img.classList.remove("is-visible");img.removeAttribute("src");}}
-function huTimerColors(remainingSec){const bar=document.getElementById("timerBar");bar.classList.toggle("hu-time-low",remainingSec<=5&&remainingSec>3);bar.classList.toggle("hu-time-critical",remainingSec<=3);}
+function huTimerColors(remainingSec){const bar=document.getElementById("timerBar");bar.classList.toggle("hu-time-low",remainingSec<=5&&remainingSec>3);bar.classList.toggle("hu-time-critical",remainingSec<=3);const clock=document.getElementById("hostClock");if(clock){clock.classList.toggle("low",remainingSec<=5&&remainingSec>3);clock.classList.toggle("critical",remainingSec<=3);}}
 
 const sampleQuestions = [
 
@@ -1310,6 +1359,7 @@ function startHostTimer(startedAt, durationSec) {
       ) + "%";
 
     huTimerColors(remainingMs/1000);
+    document.getElementById("hostClock")?.style.setProperty("--clock-progress",String(Math.max(0,Math.min(100,remainingMs/totalMs*100)))+"%");
     if (remainingMs <= 0) {
       stopTimer();
 
@@ -1398,7 +1448,7 @@ window.resetQuiz = async function() {
 
     stopTimer();
     quizMode = "waiting";
-    document.body.classList.remove("quiz-presenting");
+    document.body.classList.remove("quiz-presenting","hu-warmup");
     window.scrollTo(0,0);
     currentQuestion = -1;
     currentAnswers = [];
@@ -1438,6 +1488,7 @@ function displayQuestion() {
   const q =
     questions[currentQuestion];
   huApplyBackground(q,currentQuestion,"hostBackgroundAnchor","hostPicture");
+   document.body.classList.toggle("hu-warmup",Number(q.points)===0);
 
   document.getElementById("questionNumber")
     .textContent =
