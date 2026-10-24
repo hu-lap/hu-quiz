@@ -1168,6 +1168,9 @@ function huPreparation(until){
 }
 function huPreparationEnd(){clearInterval(huPrepareInterval);huPrepareInterval=null;document.getElementById('huPreparation').hidden=true;}
 function huDelay(ms){return new Promise(resolve=>setTimeout(resolve,Math.max(0,ms)));}
+function huPaintReady(){return Promise.race([new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))),huDelay(150)]);}
+function huPreloadAhead(list,index){for(let i=index+1;i<=Math.min(index+2,list.length-1);i++)void huPreload(list[i],i);}
+
 
 function huTimerColors(remainingSec){const bar=document.getElementById("timerBar");bar.classList.toggle("hu-time-low",remainingSec<=5&&remainingSec>3);bar.classList.toggle("hu-time-critical",remainingSec<=3);const clock=document.getElementById("hostClock");if(clock){clock.classList.toggle("low",remainingSec<=5&&remainingSec>3);clock.classList.toggle("critical",remainingSec<=3);}}
 
@@ -1229,7 +1232,7 @@ let editQuestionIndex = -1;
 let setLoading = true;
 const setSelect = document.getElementById("setSelect");
 const manageSetSelect = document.getElementById("manageSetSelect");
-setSelect.onchange=()=>{selectedSetId=setSelect.value;updateSetUI();};
+setSelect.onchange=()=>{selectedSetId=setSelect.value;updateSetUI();const list=selectedQuestions();if(list[0])void huPreload(list[0],0);huPreloadAhead(list,0);};
 const setPanel = document.getElementById("setPanel");
 function closeSetManager(){setPanel.classList.remove("set-page-open");document.body.classList.remove("editing-sets");}
 document.getElementById("openSetManagerBtn").onclick=()=>{if(!adminAuthenticated)return; if(!quizSets[selectedSetId]){selectedSetId=Object.entries(quizSets).sort((a,b)=>(a[1].name||"").localeCompare(b[1].name||"","ko"))[0]?.[0]||"";} updateSetUI();setPanel.classList.add("set-page-open");document.body.classList.add("editing-sets");};
@@ -1770,14 +1773,17 @@ async function huStartPreparedQuestion(){
  quizMode='preparing';stopTimer();huPreparation(0);
  ['answerButton','nextButton','rankButton'].forEach(id=>document.getElementById(id).style.display='none');
  try{
-  await huPreload(q,index);
+  const backgroundReady=huPreload(q,index);
   if(version!==huStageVersion)return false;
   const startedAt=serverNow()+3000;
   await set(ref(database,'quizState'),{status:'question',question:index,revealed:false,startedAt,durationSec:q.durationSec,questions});
   huPreparation(startedAt);
   // Fetch subsequent backgrounds while this question runs.
-  if(questions[index+1])void huPreload(questions[index+1],index+1);
-  await huDelay(startedAt-serverNow());
+  huPreloadAhead(questions,index);
+  await backgroundReady;
+  if(version!==huStageVersion)return false;
+  huApplyBackground(q,index,"hostBackgroundAnchor","hostPicture");
+  await Promise.all([huPaintReady(),huDelay(startedAt-serverNow())]);
   if(version!==huStageVersion)return false;
   questionStartedAt=startedAt;quizMode='question';displayQuestion();
   huPreparationEnd();startHostTimer(startedAt,q.durationSec);
