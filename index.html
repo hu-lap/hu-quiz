@@ -368,6 +368,20 @@ body.quiz-presenting #options .option.correct-choice{outline:4px solid #219653;o
 #resultChoices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:18px 0}
 #resultChoices .result-choice{padding:14px 9px;border:2px solid #ccd9df;border-radius:12px;overflow-wrap:anywhere;background:#f4f7fa;color:#183a58}
 #resultChoices .correct-choice{border:4px solid #219653;background:#e5f5eb;color:#14532d;font-weight:800}
+
+/* Light, readable cards; preserve the existing screen structure. */
+:root{--hu-ink:#17374d;--hu-navy:#185b83}
+#quizScreen .question,#quizScreen.hu-warmup .question{background:rgba(255,255,255,.60)!important;border:1px solid rgba(255,255,255,.78);box-shadow:0 4px 16px #17374d0d;border-radius:18px;padding:19px 17px;line-height:1.45;color:#12354c;font-weight:750;text-shadow:0 1px 2px #ffffffa6}
+#quizScreen .timer-wrap{background:rgba(255,255,255,.66)!important;box-shadow:none;border:1px solid #ffffff80;border-radius:16px!important}
+#quizScreen .question-number{font-size:15px;font-weight:700;letter-spacing:.02em;color:#254c65}
+#quizScreen .answers,#quizScreen .answers.long-answers{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px}
+#quizScreen .answer,#quizScreen .answers.long-answers .answer{border-radius:17px;border:1px solid #ffffff8c;box-shadow:0 4px 12px #12354c18;padding:17px 12px;min-height:100px;font-size:clamp(16px,4.7vw,23px);line-height:1.4;text-align:center;overflow-wrap:anywhere;transition:transform .12s,box-shadow .12s}
+#quizScreen .answer:active{transform:scale(.98)}#quizScreen .answer.used{outline:3px solid #12354c;outline-offset:2px}
+.color1{background:#397eb0}.color2{background:#358e82}.color3{background:#b98246}.color4{background:#8071a6}
+.card{border-radius:21px;box-shadow:0 8px 28px #12354c12;border:1px solid #ffffffa6}
+#joinNotice{max-width:430px;padding:14px 18px;border-radius:14px;background:#ffffffeb;color:#184963;line-height:1.6;margin:0 0 16px;text-align:center}
+#joinNotice:empty{display:none}.main-button:disabled{opacity:.55;cursor:default;box-shadow:none!important}
+button:focus-visible{outline:3px solid #145e95;outline-offset:4px}
 </style>
 </head>
 
@@ -381,6 +395,7 @@ body.quiz-presenting #options .option.correct-choice{outline:4px solid #219653;o
   <h1>함께하는 퀴즈</h1>
   <div class="subtitle">닉네임을 입력하고 교육에 참여하세요</div>
 
+  <div id="joinNotice" role="status" aria-live="polite"></div>
   <input
     id="nickname"
     type="text"
@@ -764,6 +779,7 @@ async function restoreParticipant() {
       sessionStorage.removeItem(participantStorageKey);
       return;
     }
+    if(latestQuizState?.status==='finished'){leaveCompletedQuiz();return;}
     participantId = saved.participantId;
     nickname = record.nickname;
     joined = true;
@@ -842,6 +858,8 @@ function showScreen(id) {
 ------------------------- */
 
 window.joinQuiz = async function() {
+  if(latestQuizState?.status==='finished'){leaveCompletedQuiz();return;}
+
 
   nickname =
     document.getElementById("nickname")
@@ -1442,6 +1460,7 @@ async function saveAnswer(answer) {
 
   answerSaving = true;
   const savingQuestion = currentQuestion;
+  const savingParticipantId=participantId;
 
   // 문제 번호 + 참가자 ID를 고정 키로 사용해 중복 답변을 구분합니다.
   // 서버 보안규칙에서 기존 키의 덮어쓰기를 금지해야 최종적으로 보호됩니다.
@@ -1473,6 +1492,7 @@ async function saveAnswer(answer) {
     );
 
 
+    if(!joined||participantId!==savingParticipantId||latestQuizState?.status==='finished')return;
     rememberAnswer(savingQuestion, answer);
     submittedQuestion = savingQuestion;
     stopTimer();
@@ -1615,11 +1635,30 @@ function showResult() {
    강사 진행상태 감시 및 재접속 복구
 ------------------------- */
 
+
+function leaveCompletedQuiz(){
+ stopTimer();huPreparationEnd();
+ let saved=null;try{saved=JSON.parse(sessionStorage.getItem(participantStorageKey)||'null');}catch{}
+ const oldId=participantId||saved?.participantId;
+ sessionStorage.removeItem(participantStorageKey);
+ if(oldId){const prefix='huQuizAnswer_'+oldId+'_';for(let i=sessionStorage.length-1;i>=0;i--){const key=sessionStorage.key(i);if(key?.startsWith(prefix))sessionStorage.removeItem(key);}}
+ joined=false;participantId='';nickname='';currentQuestion=-1;submittedQuestion=-1;myAnswer=null;orderSelection=[];timeExpired=false;
+ document.getElementById('nickname').value='';
+ document.getElementById('joinNotice').textContent='퀴즈가 종료되었습니다. 참여해 주셔서 감사합니다! 다음 퀴즈가 준비되면 다시 입장해 주세요.';
+ document.querySelector('#joinScreen .main-button').disabled=true;
+ showScreen('joinScreen');
+}
+
 let huStudentVersion=0;
 async function applyQuizState(state) {
   const version=++huStudentVersion;
   huPreparationEnd();
   if (state && Array.isArray(state.questions) && state.questions.length) questions = state.questions;
+  if(state?.status==='finished'){leaveCompletedQuiz();return;}
+  if(!state||state.status==='waiting'){
+    document.getElementById('joinNotice').textContent='';
+    document.querySelector('#joinScreen .main-button').disabled=false;
+  }
   if (!joined) return;
   if (!state) {
     stopTimer();
