@@ -359,6 +359,14 @@ button{transition:filter .15s,transform .15s}button:active{transform:scale(.985)
 @media(max-width:700px){#quizScreen .timer-wrap{padding:8px 13px!important}#quizScreen .hu-clock{width:76px;height:76px;padding:6px}#quizScreen .hu-clock .timer-value{font-size:18px!important}#quizScreen .answer{min-height:clamp(104px,17dvh,145px)}}
 @media(prefers-reduced-motion:reduce){.hu-wait-dots i{animation:none}}
 
+
+/* HU Quiz: responsive stage layout */
+#prepareScreen{position:fixed;inset:0;z-index:900;background:radial-gradient(circle at 50% 30%,#fff,#dcecff);display:none;align-items:center;justify-content:center;flex-direction:column;color:#174775;text-align:center;padding:24px}
+#prepareScreen h2{font-size:clamp(26px,4vw,50px)}#prepareCount{font-size:clamp(100px,18vw,190px);font-weight:900;color:#2485dc}
+.podium{display:flex;align-items:flex-end;justify-content:center;gap:12px;min-height:250px}.podium-place{display:flex;flex-direction:column;justify-content:center;gap:12px;width:30%;background:#cce7ff;border-radius:22px 22px 0 0;padding:20px 8px;overflow-wrap:anywhere}.podium-place b{font-size:45px}.podium-place strong{font-size:clamp(18px,3vw,32px)}.place1{min-height:220px;background:#ffe5a0}.place2{min-height:180px}.place3{min-height:150px;background:#f3d5bf}.rank-row{padding:12px;border-bottom:1px solid #dce7f0;text-align:left}.correct-choice{background:#dcfce7!important;border:4px solid #16a34a!important;color:#14532d!important}.wrong-choice{border:4px solid #e34e55!important;opacity:.75}.hu-picture.is-visible{object-fit:contain!important;width:100%;max-height:32vh;background:#ffffffb0;border-radius:18px}.result-note{background:#fffffff0;padding:16px;border-radius:16px;margin-top:12px;line-height:1.5;color:#183b56}
+#rehearsalBar{position:fixed;bottom:0;left:0;right:0;z-index:950;background:#173d60;color:white;padding:8px;display:flex;gap:8px;align-items:center;justify-content:center}#rehearsalBar button{padding:8px;font-size:14px}#mobilePreview{position:fixed;right:12px;top:80px;width:360px;height:75vh;z-index:940;background:white;border:7px solid #173d60;border-radius:24px;display:none}
+
+#quizScreen{box-sizing:border-box;min-height:100dvh;padding:18px 16px 24px!important;background:linear-gradient(#ffffff30,#ffffff10),var(--hu-scene) center/contain no-repeat #dce8eb!important;position:relative}#quizScreen .question-number{margin:0 90px 12px 0;text-align:left;font-weight:800;color:#143953}#quizScreen .timer-wrap{position:absolute;right:12px;top:8px;padding:0!important;background:transparent!important;width:auto;box-shadow:none}#quizScreen .hu-clock{width:64px;height:64px}#quizScreen .question{margin:20px 0 14px!important;padding:16px!important;font-size:clamp(20px,5.3vw,28px);background:#ffffffe6!important;text-align:left}#quizScreen .answers,#quizScreen .answers.long-answers{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px;margin-top:16px}#quizScreen .answer,#quizScreen .answers.long-answers .answer{min-height:90px!important;font-size:clamp(16px,4.5vw,23px);padding:12px!important;text-align:center;border:3px solid #fff;overflow-wrap:anywhere}#quizScreen.warmup-scene .answers{position:absolute;bottom:24px;left:16px;right:16px}#quizScreen.warmup-scene .question{margin-top:35px!important}#quizScreen.warmup-scene .answer{min-height:65px!important;background:#fffffff0;color:#174775}#quizScreen[data-type="ox"] .answer{font-size:64px!important}#quizScreen[data-type="ox"] .answer:first-child{background:#2187dd}#quizScreen[data-type="ox"] .answer:nth-child(2){background:#e85260}#quizScreen.warmup-scene:has(.result-note) .answers{bottom:120px}#quizScreen.warmup-scene .result-note{position:absolute;bottom:12px;left:16px;right:16px;font-size:14px}.card{width:min(92vw,560px);box-sizing:border-box}#rankingScreen{background:linear-gradient(#e0f1ff,#f8fbff)}
 </style>
 </head>
 
@@ -417,13 +425,14 @@ button{transition:filter .15s,transform .15s}button:active{transform:scale(.985)
     ⏰ 제한시간이 종료되었습니다.
   </div>
 
-  <img id="studentPicture" class="hu-picture" alt="문제 이미지">
+
 
   <div
     id="questionText"
     class="question">
   </div>
 
+  <img id="studentPicture" class="hu-picture" alt="문제 이미지">
   <div
     id="answers"
     class="answers">
@@ -528,6 +537,7 @@ button{transition:filter .15s,transform .15s}button:active{transform:scale(.985)
 </div>
 
 
+<section id="rankingScreen" class="screen"><div class="card"><h2>🏆 누적 순위</h2><div id="studentRanking"></div></div></section>
 <!-- 종료 -->
 <div id="finishedScreen" class="screen">
 
@@ -540,7 +550,7 @@ button{transition:filter .15s,transform .15s}button:active{transform:scale(.985)
     </div>
 
     <div class="message">
-      참여해 주셔서 감사합니다.
+      참여해 주셔서 감사합니다.<div id="finalRanking"></div>
     </div>
 
   </div>
@@ -549,7 +559,7 @@ button{transition:filter .15s,transform .15s}button:active{transform:scale(.985)
 
 
 
-<script type="module">
+<section id="prepareScreen"><div>HU QUIZ</div><h2>이제 곧 문제가 출제됩니다!</h2><div id="prepareCount">3</div></section><script type="module">
 
 import { initializeApp }
 from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
@@ -558,7 +568,7 @@ import {
   getDatabase,
   ref,
   push,
-  set,
+  set as firebase_set,
   onValue,
   serverTimestamp,
   get
@@ -595,12 +605,35 @@ const firebaseConfig = {
 };
 
 
+
+const rehearsal = new URLSearchParams(location.search).has('rehearsal');
+const warmups = [
+ {type:'poll',text:'짜장 vs 짬뽕, 당신의 선택은?',options:['짜장','짬뽕'],correct:null},
+ {type:'poll',text:'탕수육, 부먹 vs 찍먹?',options:['부먹','찍먹'],correct:null},
+ {type:'choice',text:'다음 중 목뼈의 개수가 가장 많은 동물은?',options:['사람','기린','개','닭'],correct:'닭',explanation:'사람·기린·개는 목뼈가 7개입니다. 닭은 이보다 많은 목뼈를 가지고 있습니다.'}
+].map((q,i)=>({...q,points:0,durationSec:20,warmup:i+1,imageMode:'auto'}));
+function escapeText(t){return String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function podium(rows){return '<div class="podium">'+[1,0,2].filter(i=>rows[i]).map(i=>'<div class="podium-place place'+(i+1)+'"><b>'+['🥇','🥈','🥉'][i]+'</b><strong>'+escapeText(rows[i].nickname)+'</strong><span>'+(i+1)+'위 · '+rows[i].score+'점</span></div>').join('')+'</div>'+rows.slice(3,7).map((r,i)=>'<div class="rank-row">'+(i+4)+'위　'+escapeText(r.nickname)+'</div>').join('');}
+let prepareTicker;
+function preparation(until){clearInterval(prepareTicker);document.getElementById('prepareScreen').style.display='flex';const tick=()=>{document.getElementById('prepareCount').textContent=Math.max(1,Math.ceil((until-serverNow())/1000));};tick();prepareTicker=setInterval(tick,100);}
+function hidePreparation(){clearInterval(prepareTicker);document.getElementById('prepareScreen').style.display='none';}
+function scene(q,i,target,picture,mobile){
+ const el=document.getElementById(target),img=document.getElementById(picture);
+ const base=q.backgroundPath||HU_BACKGROUNDS[i%4];
+ const path=q.warmup?'images/warmup_0'+q.warmup+'_'+(mobile?'mobile':'host')+'.png':mobile?base.replace(/\.png$/,'_mobile.png'):base;
+ el.style.setProperty('--hu-scene',q.imageMode==='none'?'linear-gradient(#e8f1fa,#d9e8f5)':`url("${path}")`);
+ if(q.imageMode!=='none'){const probe=new Image();probe.onerror=()=>el.style.setProperty('--hu-scene',`url("${base}")`);probe.src=path;}
+ el.classList.toggle('warmup-scene',!!q.warmup);el.dataset.type=q.type;
+ const pic=q.picturePath||(q.imageMode==='custom'?q.imagePath:'');img.classList.toggle('is-visible',!!pic);if(pic){img.src=pic;img.onerror=()=>{img.classList.remove('is-visible');};}else img.removeAttribute('src');
+}
+
+function set(...args){if(rehearsal)throw Error("리허설에서는 실제 데이터 변경이 차단됩니다.");return firebase_set(...args);}
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 const auth = getAuth(app);
 let studentAuthReady = null;
 const authReady = new Promise(resolve => { studentAuthReady = resolve; });
-onAuthStateChanged(auth, async user => {
+if(!rehearsal) onAuthStateChanged(auth, async user => {
   if (user) { studentAuthReady(user); return; }
   try {
     const credential = await signInAnonymously(auth);
@@ -798,6 +831,7 @@ function showScreen(id) {
     "quizScreen",
     "submittedScreen",
     "resultScreen",
+    "rankingScreen",
     "finishedScreen"
   ];
 
@@ -859,6 +893,9 @@ window.joinQuiz = async function() {
       return;
     }
 
+    const existing=(await get(ref(database,"participants"))).val()||{};
+    if(Object.keys(existing).length>=25)throw Error("참가자는 최대 25명입니다.");
+    if(Object.values(existing).some(p=>p.nickname===nickname))throw Error("이미 사용 중인 닉네임입니다.");
     // Firebase에 참가자 등록
     const newParticipantRef =
       push(
@@ -896,7 +933,7 @@ window.joinQuiz = async function() {
 
   } catch(error) {
 
-    alert("입장에 실패했습니다. 다시 시도해주세요.");
+    alert(error.message||"입장에 실패했습니다. 다시 시도해주세요.");
 
     console.error(error);
 
@@ -1060,11 +1097,12 @@ function startTimer(startedAt, durationSec) {
 
 const HU_BACKGROUNDS=["images/nuclear_dome_01.png","images/human_action_01.png","images/nuclear_dome_02.png","images/human_action_02.png"];
 function huBackground(q,index){const mode=q?.imageMode||"auto";if(mode==="none")return {mode,path:""};if(mode==="custom"&&q?.imagePath)return {mode,path:q.imagePath};return {mode:"auto",path:HU_BACKGROUNDS[index%HU_BACKGROUNDS.length]};}
-function huApplyBackground(q,index,target,picture){const v=huBackground(q,index);const el=document.getElementById(target);const img=document.getElementById(picture);if(v.mode==="none"){el.style.setProperty("--hu-scene","linear-gradient(#e9f0f1,#e9f0f1)");img.classList.remove("is-visible");img.removeAttribute("src");}else if(v.mode==="custom"){el.style.setProperty("--hu-scene","linear-gradient(#e9f0f1,#e9f0f1)");img.src=v.path;img.classList.add("is-visible");img.onerror=()=>{img.classList.remove("is-visible");};}else{el.style.setProperty("--hu-scene",`url("${v.path}")`);img.classList.remove("is-visible");img.removeAttribute("src");}}
+function huApplyBackground(q,index,target,picture){scene(q,index,target,picture,true);}
 function huTimerColors(remainingSec){const bar=document.getElementById("timerBar");bar.classList.toggle("hu-time-low",remainingSec<=5&&remainingSec>3);bar.classList.toggle("hu-time-critical",remainingSec<=3);const clock=document.getElementById("studentClock");if(clock){clock.classList.toggle("low",remainingSec<=5&&remainingSec>3);clock.classList.toggle("critical",remainingSec<=3);}}
 
 function displayQuestion(questionIndex, state) {
 
+  document.getElementById("answerExplanation")?.remove();document.getElementById("timerWrap").style.visibility="visible";
   currentQuestion = questionIndex;
 
   submittedQuestion = -1;
@@ -1326,6 +1364,7 @@ window.resetOrder = function() {
 
 window.submitOrder = async function() {
 
+  if(serverNow()>=Number(latestQuizState?.startedAt)+Number(latestQuizState?.durationSec)*1000){expireQuestion();return;}
   if (timeExpired || answerSaving || submittedQuestion === currentQuestion) {
     return;
   }
@@ -1371,10 +1410,12 @@ window.submitOrder = async function() {
 
 async function saveAnswer(answer) {
 
+  if(serverNow()>=Number(latestQuizState?.startedAt)+Number(latestQuizState?.durationSec)*1000){expireQuestion();return;}
   if (timeExpired || answerSaving || submittedQuestion === currentQuestion) {
     return;
   }
 
+  if(rehearsal){myAnswer=answer;submittedQuestion=currentQuestion;previewChannel.postMessage({kind:"answer",answer:{answer}});showScreen("submittedScreen");return;}
   answerSaving = true;
   const savingQuestion = currentQuestion;
 
@@ -1442,105 +1483,7 @@ async function saveAnswer(answer) {
    정답 결과 표시
 ------------------------- */
 
-function showResult() {
-
-  stopTimer();
-
-  const q =
-    questions[currentQuestion];
-
-
-  if (
-    submittedQuestion !==
-    currentQuestion
-  ) {
-
-    /*
-      답을 제출하지 않은 경우도
-      정답 공개 화면은 볼 수 있다.
-    */
-
-    myAnswer = null;
-
-  }
-
-
-  let isCorrect = false;
-
-
-  if (myAnswer !== null) {
-
-    if (q.type === "poll") { isCorrect = true; } else if (q.type === "multi") { isCorrect = JSON.stringify([...(myAnswer||[])].sort()) === JSON.stringify([...q.correct].sort()); } else if (q.type === "order") {
-
-      isCorrect =
-        JSON.stringify(myAnswer) ===
-        JSON.stringify(q.correct);
-
-    } else {
-
-      isCorrect =
-        myAnswer === q.correct;
-
-    }
-
-  }
-
-
-  document.getElementById("resultSymbol")
-    .textContent =
-    q.type === "poll" ? "🗳️" : (isCorrect ? "⭕" : "❌");
-
-
-  document.getElementById("resultTitle")
-    .textContent =
-    q.type === "poll" ? "투표 결과 공개!" : (isCorrect ? "정답입니다!" : "아쉽네요!");
-
-
-  let myText =
-    "미제출";
-
-
-  if (myAnswer !== null) {
-
-    myText =
-      Array.isArray(myAnswer) ?
-      myAnswer.join(" → ") :
-      myAnswer;
-
-  }
-
-
-  let correctText =
-    Array.isArray(q.correct) ?
-    q.correct.join(" → ") :
-    q.correct;
-
-
-  document.getElementById("myAnswer")
-    .textContent =
-    "내 답 : " +
-    myText;
-
-
-  document.getElementById("correctAnswer")
-    .textContent =
-    q.type === "poll" ? "" : "정답 : " + correctText;
-
-
-  document.getElementById("explanation")
-    .textContent =
-    "";
-
-
-  showScreen("resultScreen");
-
-}
-
-
-
-/* ------------------------
-   강사 진행상태 감시 및 재접속 복구
-------------------------- */
+function showResult(){stopTimer();const answer=myAnswer??(restoreAnswer(currentQuestion)?myAnswer:null);const q=questions[currentQuestion];displayQuestion(currentQuestion,latestQuizState);stopTimer();myAnswer=answer;showScreen('quizScreen');document.querySelectorAll('#answers .answer').forEach((btn,i)=>{btn.disabled=true;const option=q.options[i],correct=q.type!=='poll'&&(Array.isArray(q.correct)?q.correct.includes(option):q.correct===option);if(correct)btn.classList.add('correct-choice');const picked=Array.isArray(answer)?answer.includes(option):answer===option;if(picked&&!correct&&q.type!=='poll')btn.classList.add('wrong-choice');if(q.type==='poll'){const n=latestQuizState?.distribution?.[i]||0;const total=latestQuizState?.responseTotal||0;btn.textContent=option+' · '+n+'명 ('+(total?Math.round(n/total*100):0)+'%)';}if(q.type==='order')btn.textContent=(q.correct.indexOf(option)+1)+'번째 · '+option;});document.getElementById('orderControls').style.display='none';document.getElementById('timerWrap').style.visibility='hidden';let note=document.getElementById('answerExplanation');if(!note){note=document.createElement('div');note.id='answerExplanation';note.className='result-note';document.getElementById('quizScreen').append(note);}note.textContent=q.type==='poll'?'투표 결과입니다. 다음 문제를 기다려 주세요.':q.explanation||'초록색 선택지가 정답입니다.';}
 
 function applyQuizState(state) {
   if (state && Array.isArray(state.questions) && state.questions.length) questions = state.questions;
@@ -1551,6 +1494,9 @@ function applyQuizState(state) {
     return;
   }
 
+  hidePreparation();
+  if(state.status==="preparing"){stopTimer();showScreen("waitingScreen");preparation(state.prepareUntil);return;}
+  if(state.status==="ranking"){stopTimer();showScreen("rankingScreen");document.getElementById("studentRanking").innerHTML=podium(state.ranking||[]);return;}
   if (state.status === "question") {
     const newQuestion = Number(state.question);
     if (!Number.isInteger(newQuestion) || newQuestion < 0 || newQuestion >= questions.length) return;
@@ -1609,16 +1555,20 @@ function applyQuizState(state) {
   if (state.status === "finished") {
     stopTimer();
     showScreen("finishedScreen");
+    document.getElementById("finalRanking").innerHTML=podium(state.ranking||[]);
   }
 }
 
-onValue(ref(database, "quizState"), snapshot => {
+if(!rehearsal) authReady.then(user=>{if(user)onValue(ref(database, "quizState"), snapshot => {
   latestQuizState = snapshot.val();
   applyQuizState(latestQuizState);
-}, error => console.error("진행상태 수신 실패:", error));
+}, error => console.error("진행상태 수신 실패:", error));});
 
-restoreParticipant();
+if(!rehearsal) restoreParticipant();
 
+
+const previewChannel=new BroadcastChannel('hu-quiz-rehearsal');
+if(rehearsal){joined=true;nickname='미리보기';participantId='preview';showScreen('waitingScreen');document.getElementById('waitingName').textContent='교육생 화면 미리보기';previewChannel.onmessage=e=>{if(e.data.kind==='state'){latestQuizState=e.data.state;applyQuizState(latestQuizState);}};previewChannel.postMessage({kind:'ready'});}
 </script>
 
 </body>
