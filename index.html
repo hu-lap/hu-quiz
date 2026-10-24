@@ -360,53 +360,56 @@ button{transition:filter .15s,transform .15s}button:active{transform:scale(.985)
 @media(prefers-reduced-motion:reduce){.hu-wait-dots i{animation:none}}
 
 
-/* Limited update: preparation overlay and answer outlines only. */
-#huPreparation[hidden]{display:none!important}
-#huPreparation{position:fixed;inset:0;z-index:2000;background:#edf3f7;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:24px;color:#183a58}
-#huPreparation h2{font-size:clamp(25px,4vw,44px)}#huPrepareCount{font-size:clamp(50px,12vw,120px);font-weight:800}
-body.quiz-presenting #options .option.correct-choice{outline:4px solid #219653;outline-offset:-4px;background:#e5f5eb!important;color:#14532d}
-#resultChoices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:18px 0}
-#resultChoices .result-choice{padding:14px 9px;border:2px solid #ccd9df;border-radius:12px;overflow-wrap:anywhere;background:#f4f7fa;color:#183a58}
-#resultChoices .correct-choice{border:4px solid #219653;background:#e5f5eb;color:#14532d;font-weight:800}
-
-/* Light, readable cards; preserve the existing screen structure. */
-:root{--hu-ink:#17374d;--hu-navy:#185b83}
-#quizScreen .question,#quizScreen.hu-warmup .question{background:rgba(255,255,255,.60)!important;border:1px solid rgba(255,255,255,.78);box-shadow:0 4px 16px #17374d0d;border-radius:18px;padding:19px 17px;line-height:1.45;color:#12354c;font-weight:750;text-shadow:0 1px 2px #ffffffa6}
-#quizScreen .timer-wrap{background:rgba(255,255,255,.66)!important;box-shadow:none;border:1px solid #ffffff80;border-radius:16px!important}
-#quizScreen .question-number{font-size:15px;font-weight:700;letter-spacing:.02em;color:#254c65}
-#quizScreen .answers,#quizScreen .answers.long-answers{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px}
-#quizScreen .answer,#quizScreen .answers.long-answers .answer{border-radius:17px;border:1px solid #ffffff8c;box-shadow:0 4px 12px #12354c18;padding:17px 12px;min-height:100px;font-size:clamp(16px,4.7vw,23px);line-height:1.4;text-align:center;overflow-wrap:anywhere;transition:transform .12s,box-shadow .12s}
-#quizScreen .answer:active{transform:scale(.98)}#quizScreen .answer.used{outline:3px solid #12354c;outline-offset:2px}
-.color1{background:#397eb0}.color2{background:#358e82}.color3{background:#b98246}.color4{background:#8071a6}
-.card{border-radius:21px;box-shadow:0 8px 28px #12354c12;border:1px solid #ffffffa6}
-#joinNotice{max-width:430px;padding:14px 18px;border-radius:14px;background:#ffffffeb;color:#184963;line-height:1.6;margin:0 0 16px;text-align:center}
-#joinNotice:empty{display:none}.main-button:disabled{opacity:.55;cursor:default;box-shadow:none!important}
-button:focus-visible{outline:3px solid #145e95;outline-offset:4px}
-
-/* 2026-10-25: mobile layout and result background; no changes to scoring/Firebase */
-#resultScreen{position:relative;isolation:isolate;background:#e9f0f1!important;overflow:hidden}
-#resultScreen::before{content:"";position:absolute;inset:0;z-index:-1;background-image:var(--hu-result-scene,linear-gradient(#e9f0f1,#e9f0f1));background-position:center;background-size:cover;filter:none}
-#resultScreen>.card{position:relative;background:rgba(255,255,255,.90)}
-/* Keep the actual background photograph clear; do not place a pale overlay over it. */
-#quizScreen{background-image:var(--hu-scene)!important}
-/* Shared mobile layout: upper content, lower-half answer grid. */
-@media(max-width:700px){
- #quizScreen[style*="display: grid"]{display:grid!important;box-sizing:border-box;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:54px auto minmax(0,1fr) minmax(0,1fr);height:100vh;height:100dvh;min-height:560px;padding:10px 12px max(12px,env(safe-area-inset-bottom));gap:10px;position:relative;align-content:stretch}
- #quizScreen #questionNumber{grid-column:1;grid-row:1;align-self:center;margin:0}
- #quizScreen #timerWrap{grid-column:2;grid-row:1;margin:0!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important}
- #quizScreen .hu-timer-copy{display:none}
- #quizScreen .hu-clock{width:53px;height:53px;padding:5px}
- #quizScreen .hu-clock .timer-value{font-size:13px!important}
- #quizScreen #questionText{grid-column:1/-1;grid-row:2;margin:0!important;padding:10px 12px!important;font-size:clamp(18px,5vw,25px);max-height:18dvh;overflow:auto}
- #quizScreen #studentPicture{grid-column:1/-1;grid-row:3;width:100%;height:100%;min-height:0;max-height:100%;object-fit:contain;margin:0;box-shadow:none;align-self:center}
- #quizScreen #answers{position:absolute;top:50%;bottom:max(12px,env(safe-area-inset-bottom));left:12px;right:12px;width:auto;height:auto;max-width:none;margin:0;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;grid-template-rows:repeat(var(--answer-rows,2),minmax(0,1fr));gap:8px;align-content:stretch}
- #quizScreen #answers .answer{position:static!important;box-sizing:border-box;width:100%;height:100%;min-width:0;min-height:0;margin:0;padding:12px;font-size:clamp(20px,5.6vw,30px);line-height:1.3;white-space:normal;overflow-wrap:anywhere;overflow:auto;border-radius:16px;touch-action:manipulation}
- #quizScreen #studentPicture{position:absolute;top:var(--photo-top,150px);left:12px;width:calc(100% - 24px);height:calc(50% - var(--photo-top,150px) - 14px)}
- #quizScreen #timeOverMessage{position:absolute;top:45%;left:12px;right:12px;z-index:3;margin:0}
- #quizScreen.hu-selection-controls #answers{bottom:120px}
- #quizScreen #orderInfo{position:absolute;bottom:62px;left:12px;right:12px;margin:0;padding:6px;max-height:48px;overflow:auto}
- #quizScreen #orderControls{position:absolute;bottom:max(12px,env(safe-area-inset-bottom));left:12px;right:12px;margin:0}
+/* 2026-10-25: 모바일 답변 영역을 화면 하단 절반에 고정 */
+@media (max-width:700px){
+  #quizScreen{
+    box-sizing:border-box;
+    min-height:100dvh;
+    padding:10px 10px max(12px,env(safe-area-inset-bottom));
+    display:flex;
+    flex-direction:column;
+  }
+  #quizScreen .question-number{flex:0 0 auto;margin:3px 0 5px}
+  #quizScreen .timer-wrap{flex:0 0 auto}
+  #quizScreen .question{flex:0 0 auto;margin:6px auto 8px;padding:12px 10px;font-size:clamp(19px,5.1vw,25px)}
+  #quizScreen .hu-picture{flex:0 1 auto;max-height:17dvh;margin:3px auto 7px}
+  #quizScreen .answers,
+  #quizScreen .answers.long-answers{
+    flex:0 0 auto;
+    width:100%;max-width:none;
+    height:48dvh;
+    min-height:260px;
+    margin:auto 0 0;
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    grid-template-rows:repeat(2,minmax(0,1fr));
+    gap:9px;
+  }
+  #quizScreen .answers.two-options{
+    grid-template-rows:minmax(0,1fr);
+  }
+  #quizScreen .answers .answer,
+  #quizScreen .answers.long-answers .answer{
+    min-height:0;height:100%;width:100%;
+    text-align:center;padding:8px;
+    font-size:clamp(19px,5vw,27px);
+    display:flex;align-items:center;justify-content:center;
+    overflow-wrap:anywhere;
+  }
+  #quizScreen:has(#orderControls[style*="block"]) .answers{
+    height:37dvh;min-height:220px;
+  }
+  #quizScreen .order-info{margin:6px auto}
+  #quizScreen .order-controls{margin:5px auto}
 }
+@media(max-width:700px) and (max-height:650px){
+  #quizScreen .answers,#quizScreen .answers.long-answers{height:46dvh;min-height:190px}
+  #quizScreen .hu-picture{max-height:12dvh}
+  #quizScreen .question{padding:8px;font-size:19px}
+}
+/* 제출 후 대기 중에는 직전 문제 배경을 유지 */
+#submittedScreen{background-image:linear-gradient(180deg,#edf4f5c9,#edf4f5ad),var(--hu-scene,url('images/nuclear_dome_01.png'));background-size:cover;background-position:center}
+
 </style>
 </head>
 
@@ -420,7 +423,6 @@ button:focus-visible{outline:3px solid #145e95;outline-offset:4px}
   <h1>함께하는 퀴즈</h1>
   <div class="subtitle">닉네임을 입력하고 교육에 참여하세요</div>
 
-  <div id="joinNotice" role="status" aria-live="polite"></div>
   <input
     id="nickname"
     type="text"
@@ -598,7 +600,6 @@ button:focus-visible{outline:3px solid #145e95;outline-offset:4px}
 
 
 
-<section id="huPreparation" hidden aria-live="polite"><h2>이제 곧 문제가 출제됩니다!</h2><div id="huPrepareCount">3</div></section>
 <script type="module">
 
 import { initializeApp }
@@ -804,7 +805,6 @@ async function restoreParticipant() {
       sessionStorage.removeItem(participantStorageKey);
       return;
     }
-    if(latestQuizState?.status==='finished'){leaveCompletedQuiz();return;}
     participantId = saved.participantId;
     nickname = record.nickname;
     joined = true;
@@ -842,16 +842,6 @@ function serverNow() {
 ------------------------- */
 
 function showScreen(id) {
-  if(id === "submittedScreen") {
-    const quiz = document.getElementById("quizScreen");
-    const submitted = document.getElementById("submittedScreen");
-    const scene = quiz.style.getPropertyValue('--hu-scene') || 'linear-gradient(#e9f0f1,#e9f0f1)';
-    submitted.style.setProperty('--hu-scene', scene);
-    submitted.style.backgroundImage = scene;
-    submitted.style.backgroundPosition = 'center';
-    submitted.style.backgroundSize = 'cover';
-  }
-
 
   const screens = [
     "joinScreen",
@@ -876,7 +866,7 @@ function showScreen(id) {
 
   if (id === "quizScreen") {
 
-    target.style.display = "grid";
+    target.style.display = window.matchMedia("(max-width:700px)").matches ? "flex" : "block";
 
   } else {
 
@@ -893,8 +883,6 @@ function showScreen(id) {
 ------------------------- */
 
 window.joinQuiz = async function() {
-  if(latestQuizState?.status==='finished'){leaveCompletedQuiz();return;}
-
 
   nickname =
     document.getElementById("nickname")
@@ -1123,73 +1111,7 @@ function startTimer(startedAt, durationSec) {
 
 const HU_BACKGROUNDS=["images/nuclear_dome_01.png","images/human_action_01.png","images/nuclear_dome_02.png","images/human_action_02.png"];
 function huBackground(q,index){const mode=q?.imageMode||"auto";if(mode==="none")return {mode,path:""};if(mode==="custom"&&q?.imagePath)return {mode,path:q.imagePath};return {mode:"auto",path:HU_BACKGROUNDS[index%HU_BACKGROUNDS.length]};}
-const HU_MOBILE=true;
-
-// Background selection is independent of the existing optional question picture.
-const HU_SCENES={
- nuclear_dome_01:['images/nuclear_dome_01.png','images/nuclear_dome_01_mobile.png'],
- nuclear_dome_02:['images/nuclear_dome_02.png','images/nuclear_dome_02_mobile.png'],
- human_action_01:['images/human_action_01.png','images/human_action_01_mobile.png'],
- human_action_02:['images/human_action_02.png','images/human_action_02_mobile.png'],
- warmup_01:['images/warmup_01_host.png','images/warmup_01_mobile.png'],
- warmup_02:['images/warmup_02_host.png','images/warmup_02_mobile.png'],
- warmup_03:['images/warmup_03_host.png','images/warmup_03_mobile.png']
-};
-const huLoaded=new Map(),huResolved=new Map();
-function huImageReady(path){
- if(!path)return Promise.resolve(false);
- if(!huLoaded.has(path))huLoaded.set(path,new Promise(resolve=>{
-  const img=new Image();let done=false;
-  const finish=ok=>{if(done)return;done=true;clearTimeout(timeout);resolve(ok);};
-  const timeout=setTimeout(()=>finish(false),5000);
-  img.onload=()=>{if(img.decode)img.decode().then(()=>finish(true),()=>finish(true));else finish(true);};
-  img.onerror=()=>finish(false);img.src=path;
- }));
- return huLoaded.get(path);
-}
-function huScenePair(q,index){
- if(q.backgroundKey==='none')return ['',''];
- if(q.backgroundKey==='custom')return [q.backgroundHost||'',q.backgroundMobile||q.backgroundHost||''];
- if(HU_SCENES[q.backgroundKey])return HU_SCENES[q.backgroundKey];
- if(q.imageMode==='none'||q.imageMode==='custom')return ['',''];
- return Object.values(HU_SCENES)[index%4];
-}
-function huWarmupLayout(q){
- const paths=[q.backgroundKey,q.backgroundHost,q.backgroundMobile,q.imagePath].filter(Boolean).join(' ');
- if(/warmup_03(?:[_.\s]|$)/i.test(paths))return 'four';
- if(/warmup_0[12](?:[_.\s]|$)/i.test(paths))return 'pair';
- const options=(q.options||[]).map(x=>String(x).trim());
- if(Number(q.points)===0 && options.length===4 && ['사람','기린','개','닭'].every(x=>options.includes(x)))return 'four';
- return '';
-}
-function huSceneToken(q,index){return JSON.stringify([huScenePair(q,index),q.imageMode,q.imagePath]);}
-async function huPreload(q,index){
- const pair=huScenePair(q,index),path=pair[HU_MOBILE?1:0];
- let ready=await huImageReady(path);let result=ready?path:'';
- if(!ready&&HU_MOBILE&&pair[0]!==path&&await huImageReady(pair[0]))result=pair[0];
- if(q.imageMode==='custom'&&q.imagePath)await huImageReady(q.imagePath);
- huResolved.set(huSceneToken(q,index),result);
-}
-function huApplyBackground(q,index,target,picture){
- const el=document.getElementById(target),img=document.getElementById(picture);
- const path=huResolved.get(huSceneToken(q,index))||'';
- el.style.setProperty('--hu-scene',path?'url('+JSON.stringify(path)+')':'linear-gradient(#e9f0f1,#e9f0f1)');
- const pic=q.imageMode==='custom'?q.imagePath:'';
- img.classList.toggle('is-visible',!!pic);if(pic){img.src=pic;img.onerror=()=>img.classList.remove('is-visible');}else img.removeAttribute('src');
-}
-let huPrepareInterval=null;
-function huPreparation(until){
- document.getElementById('huPreparation').hidden=false;
- clearInterval(huPrepareInterval);
- const tick=()=>{const n=until?Math.ceil((until-serverNow())/1000):0;document.getElementById('huPrepareCount').textContent=n>0?n:'준비 중…';};
- tick();huPrepareInterval=setInterval(tick,100);
-}
-function huPreparationEnd(){clearInterval(huPrepareInterval);huPrepareInterval=null;document.getElementById('huPreparation').hidden=true;}
-function huDelay(ms){return new Promise(resolve=>setTimeout(resolve,Math.max(0,ms)));}
-function huPaintReady(){return Promise.race([new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))),huDelay(150)]);}
-function huPreloadAhead(list,index){for(let i=index+1;i<=Math.min(index+2,list.length-1);i++)void huPreload(list[i],i);}
-
-
+function huApplyBackground(q,index,target,picture){const v=huBackground(q,index);const el=document.getElementById(target);const img=document.getElementById(picture);if(v.mode==="none"){el.style.setProperty("--hu-scene","linear-gradient(#e9f0f1,#e9f0f1)");img.classList.remove("is-visible");img.removeAttribute("src");}else if(v.mode==="custom"){el.style.setProperty("--hu-scene","linear-gradient(#e9f0f1,#e9f0f1)");img.src=v.path;img.classList.add("is-visible");img.onerror=()=>{img.classList.remove("is-visible");};}else{el.style.setProperty("--hu-scene",`url("${v.path}")`);img.classList.remove("is-visible");img.removeAttribute("src");}}
 function huTimerColors(remainingSec){const bar=document.getElementById("timerBar");bar.classList.toggle("hu-time-low",remainingSec<=5&&remainingSec>3);bar.classList.toggle("hu-time-critical",remainingSec<=3);const clock=document.getElementById("studentClock");if(clock){clock.classList.toggle("low",remainingSec<=5&&remainingSec>3);clock.classList.toggle("critical",remainingSec<=3);}}
 
 function displayQuestion(questionIndex, state) {
@@ -1212,13 +1134,9 @@ function displayQuestion(questionIndex, state) {
   const q =
     questions[currentQuestion];
   huApplyBackground(q,currentQuestion,"quizScreen","studentPicture");
+  // 제출 완료 화면도 지금 문제에서 사용한 배경을 그대로 사용한다.
+  document.getElementById("submittedScreen").style.setProperty("--hu-scene", document.getElementById("quizScreen").style.getPropertyValue("--hu-scene"));
    document.getElementById("quizScreen").classList.toggle("hu-warmup",Number(q.points)===0);
-  // Recognize presets AND images selected through the custom image picker.
-  const layout=huWarmupLayout(q);
-  const warmupPair=layout==='pair';
-  const warmupFour=layout==='four';
-  document.getElementById("quizScreen").classList.toggle("hu-warmup-pair",warmupPair);
-  document.getElementById("quizScreen").classList.toggle("hu-warmup-four",warmupFour);
 
   document.getElementById("questionNumber")
     .textContent =
@@ -1238,8 +1156,7 @@ function displayQuestion(questionIndex, state) {
 
 
   answers.innerHTML = "";
-  answers.style.setProperty('--answer-rows',String(Math.max(1,Math.ceil(q.options.length/2))));
-  document.getElementById('quizScreen').classList.toggle('hu-selection-controls',q.type==='order'||q.type==='multi');
+  answers.classList.toggle("two-options", q.options.length === 2);
   answers.classList.toggle("long-answers",q.type!=="order"&&q.type!=="ox"&&q.options.some(opt=>String(opt).length>17));
 
 
@@ -1311,11 +1228,6 @@ function displayQuestion(questionIndex, state) {
 
 
   showScreen("quizScreen");
-  requestAnimationFrame(()=>{
-    const screen=document.getElementById('quizScreen');
-    const title=document.getElementById('questionText');
-    screen.style.setProperty('--photo-top',(title.offsetTop+title.offsetHeight+10)+'px');
-  });
 
 
   const durationSec =
@@ -1519,7 +1431,6 @@ async function saveAnswer(answer) {
 
   answerSaving = true;
   const savingQuestion = currentQuestion;
-  const savingParticipantId=participantId;
 
   // 문제 번호 + 참가자 ID를 고정 키로 사용해 중복 답변을 구분합니다.
   // 서버 보안규칙에서 기존 키의 덮어쓰기를 금지해야 최종적으로 보호됩니다.
@@ -1551,13 +1462,14 @@ async function saveAnswer(answer) {
     );
 
 
-    if(!joined||participantId!==savingParticipantId||latestQuizState?.status==='finished')return;
     rememberAnswer(savingQuestion, answer);
     submittedQuestion = savingQuestion;
     stopTimer();
 
 
-    if(currentQuestion===savingQuestion&&latestQuizState?.status==="question")showScreen("submittedScreen");
+    showScreen(
+      "submittedScreen"
+    );
 
 
   } catch(error) {
@@ -1674,20 +1586,6 @@ function showResult() {
     "";
 
 
-  let choices=document.getElementById('resultChoices');
-  if(!choices){choices=document.createElement('div');choices.id='resultChoices';document.getElementById('correctAnswer').after(choices);}
-  choices.replaceChildren();
-  if(q.type!=='poll')q.options.forEach((option,index)=>{
-    const cell=document.createElement('div');cell.className='result-choice';
-    const correct=Array.isArray(q.correct)?q.correct.includes(option):q.correct===option;
-    cell.textContent=(q.type==='order'?(q.correct.indexOf(option)+1)+'번째 · ':q.type==='ox'?'':(index+1)+'. ')+option+(correct?' ✓':'');
-    if(correct)cell.classList.add('correct-choice');choices.append(cell);
-  });
-  choices.hidden=q.type==='poll';
-  // Use the background belonging to THIS question, even on direct result-state entry.
-  const resolvedPath=huResolved.get(huSceneToken(q,currentQuestion));
-  const resultScene=resolvedPath?'url('+JSON.stringify(resolvedPath)+')':'linear-gradient(#e9f0f1,#e9f0f1)';
-  document.getElementById('resultScreen').style.setProperty('--hu-result-scene',resultScene);
   showScreen("resultScreen");
 
 }
@@ -1698,30 +1596,8 @@ function showResult() {
    강사 진행상태 감시 및 재접속 복구
 ------------------------- */
 
-
-function leaveCompletedQuiz(){
- stopTimer();huPreparationEnd();
- let saved=null;try{saved=JSON.parse(sessionStorage.getItem(participantStorageKey)||'null');}catch{}
- const oldId=participantId||saved?.participantId;
- sessionStorage.removeItem(participantStorageKey);
- if(oldId){const prefix='huQuizAnswer_'+oldId+'_';for(let i=sessionStorage.length-1;i>=0;i--){const key=sessionStorage.key(i);if(key?.startsWith(prefix))sessionStorage.removeItem(key);}}
- joined=false;participantId='';nickname='';currentQuestion=-1;submittedQuestion=-1;myAnswer=null;orderSelection=[];timeExpired=false;
- document.getElementById('nickname').value='';
- document.getElementById('joinNotice').textContent='퀴즈가 종료되었습니다. 참여해 주셔서 감사합니다! 다음 퀴즈가 준비되면 다시 입장해 주세요.';
- document.querySelector('#joinScreen .main-button').disabled=true;
- showScreen('joinScreen');
-}
-
-let huStudentVersion=0;
-async function applyQuizState(state) {
-  const version=++huStudentVersion;
-  huPreparationEnd();
+function applyQuizState(state) {
   if (state && Array.isArray(state.questions) && state.questions.length) questions = state.questions;
-  if(state?.status==='finished'){leaveCompletedQuiz();return;}
-  if(!state||state.status==='waiting'){
-    document.getElementById('joinNotice').textContent='';
-    document.querySelector('#joinScreen .main-button').disabled=false;
-  }
   if (!joined) return;
   if (!state) {
     stopTimer();
@@ -1733,16 +1609,7 @@ async function applyQuizState(state) {
     const newQuestion = Number(state.question);
     if (!Number.isInteger(newQuestion) || newQuestion < 0 || newQuestion >= questions.length) return;
     if (newQuestion !== currentQuestion) {
-      stopTimer();huPreparation(Number(state.startedAt));
-      const backgroundReady=huPreload(questions[newQuestion],newQuestion);
-      huPreloadAhead(questions,newQuestion);
-      await backgroundReady;
-      if(version!==huStudentVersion)return;
-      huApplyBackground(questions[newQuestion],newQuestion,"quizScreen","studentPicture");
-      await Promise.all([huPaintReady(),huDelay(Number(state.startedAt)-serverNow())]);
-      if(version!==huStudentVersion)return;
-      displayQuestion(newQuestion, state);huPreparationEnd();
-      huPreloadAhead(questions,newQuestion);
+      displayQuestion(newQuestion, state);
     } else if (submittedQuestion === currentQuestion) {
       stopTimer();
       showScreen("submittedScreen");
@@ -1761,8 +1628,6 @@ async function applyQuizState(state) {
       myAnswer = null;
       restoreAnswer(newQuestion);
     }
-    await huPreload(questions[newQuestion],newQuestion);
-    if(version!==huStudentVersion)return;
     showResult();
     return;
   }
