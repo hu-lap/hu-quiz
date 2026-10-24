@@ -414,6 +414,18 @@ button:focus-visible{outline:3px solid #145e95;outline-offset:4px}
   #quizScreen.hu-warmup-four #answers .answer{min-height:80px}
 }
 
+
+/* Mobile warm-up buttons aligned to the photograph. */
+@media(max-width:700px){
+ #quizScreen.hu-warmup-pair,#quizScreen.hu-warmup-four{position:relative;box-sizing:border-box;min-height:100dvh}
+ #quizScreen.hu-warmup-pair #answers,#quizScreen.hu-warmup-four #answers{position:absolute;inset:0;width:auto;height:auto;margin:0!important;display:block!important;pointer-events:none}
+ #quizScreen.hu-warmup-pair #answers .answer,#quizScreen.hu-warmup-four #answers .answer{position:absolute;width:calc(50% - 19px);margin:0;pointer-events:auto;min-height:0!important;height:14dvh!important;font-size:clamp(21px,5.8vw,29px)!important;padding:14px!important}
+ #quizScreen.hu-warmup-pair #answers .answer:nth-child(odd),#quizScreen.hu-warmup-four #answers .answer:nth-child(odd){left:12px}
+ #quizScreen.hu-warmup-pair #answers .answer:nth-child(even),#quizScreen.hu-warmup-four #answers .answer:nth-child(even){right:12px}
+ #quizScreen.hu-warmup-four #answers .answer:nth-child(1),#quizScreen.hu-warmup-four #answers .answer:nth-child(2){top:45%;height:12dvh!important}
+ #quizScreen.hu-warmup-four #answers .answer:nth-child(3),#quizScreen.hu-warmup-four #answers .answer:nth-child(4){bottom:3%;height:16dvh!important}
+ #quizScreen.hu-warmup-pair #answers .answer{bottom:8%;height:16dvh!important}
+}
 </style>
 </head>
 
