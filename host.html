@@ -771,7 +771,7 @@ button:focus-visible{outline:3px solid #145e95;outline-offset:4px}
       <label for="setSelect">출제할 문제 세트</label>
       <select id="setSelect" aria-label="출제할 문제 세트"><option value="">문제 세트를 선택하세요</option></select>
       <div id="selectedSetInfo" class="set-hint">문제 세트를 선택하면 퀴즈를 시작할 수 있습니다.</div>
-      <button class="primary" id="lobbyStartButton" type="button" onclick="startQuiz()">퀴즈 시작</button>
+      <button type="button" class="secondary" onclick="startSolo()">혼자 미리 진행하기</button><button class="primary" id="lobbyStartButton" type="button" onclick="startQuiz()">퀴즈 시작</button>
     </div>
   </div>
 
@@ -926,7 +926,7 @@ button:focus-visible{outline:3px solid #145e95;outline-offset:4px}
        정상 진행 조작부
   =========================== -->
 
-  <div class="controls">
+  <div id="soloBanner" hidden style="padding:12px;background:#e3f0fa;border-radius:12px">혼자 진행 중 · 실제 수업 데이터와 분리 <button type="button" onclick="revealAnswer()">시간 건너뛰기</button><button type="button" onclick="location.reload()">리허설 종료</button></div><div class="controls">
 
     <button
       id="startButton"
@@ -974,11 +974,11 @@ from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import {
   getDatabase,
   ref,
-  set,
-  get,
+  set as live_set,
+  get as live_get,
   onValue,
-  remove,
-  update,
+  remove as live_remove,
+  update as live_update,
   serverTimestamp,
   push
 }
@@ -1018,6 +1018,25 @@ const firebaseConfig = {
 
 };
 
+
+
+let huSolo=false;let soloData={};
+function soloPath(r){return new URL(r.toString()).pathname.split('/').filter(Boolean).join('/');}
+function soloRead(path){return path.split('/').filter(Boolean).reduce((v,k)=>v?.[k],soloData)??null;}
+function soloWrite(path,value){const keys=path.split('/').filter(Boolean);if(!keys.length){soloData=value||{};return;}let node=soloData;for(const k of keys.slice(0,-1))node=node[k]??={};if(value===null)delete node[keys.at(-1)];else node[keys.at(-1)]=value;}
+function soloSnapshot(value){return {val:()=>value,exists:()=>value!=null,forEach:fn=>{for(const [key,v] of Object.entries(value||{})){if(fn({...soloSnapshot(v),key})===true)break;}}};}
+async function set(r,v){if(!huSolo)return live_set(r,v);soloWrite(soloPath(r),structuredClone(v));}
+async function remove(r){if(!huSolo)return live_remove(r);soloWrite(soloPath(r),null);}
+async function update(r,v){if(!huSolo)return live_update(r,v);const base=soloPath(r);for(const [k,x] of Object.entries(v))soloWrite([base,k].filter(Boolean).join('/'),structuredClone(x));}
+async function get(r){if(!huSolo)return live_get(r);return soloSnapshot(soloRead(soloPath(r)));}
+window.startSolo=async()=>{
+ if(!adminAuthenticated){alert('먼저 로그인하세요.');return;}
+ if(['question','preparing','result'].includes(quizMode)){alert('현재 진행을 마친 뒤 실행하세요.');return;}
+ if(!selectedQuestions().length){alert('문제 세트를 선택하세요.');return;}
+ huSolo=true;soloData={};currentAnswers=[];
+ document.getElementById('soloBanner').hidden=false;
+ try{await window.startQuiz();}catch(e){console.error(e);alert('리허설 시작 실패: '+e.message);}
+};
 
 const app =
   initializeApp(firebaseConfig);
@@ -1217,7 +1236,7 @@ document.getElementById("openSetManagerBtn").onclick=()=>{if(!adminAuthenticated
 document.getElementById("closeSetManagerBtn").onclick=closeSetManager;
 const setMessage = document.getElementById("setMessage");
 const editor = document.getElementById("setEditor");
-function canEditSets(){ if (!adminAuthenticated) { alert("관리자 로그인이 필요합니다."); return false; } if (quizMode === "preparing" || quizMode === "question" || quizMode === "result") { alert("퀴즈 진행 중에는 문제 세트를 편집할 수 없습니다."); return false; } return true; }
+function canEditSets(){if(huSolo){alert("리허설 종료 후 편집하세요.");return false;} if (!adminAuthenticated) { alert("관리자 로그인이 필요합니다."); return false; } if (quizMode === "preparing" || quizMode === "question" || quizMode === "result") { alert("퀴즈 진행 중에는 문제 세트를 편집할 수 없습니다."); return false; } return true; }
 function getSelectedSet(){ return quizSets[selectedSetId] || null; }
 function selectedQuestions(){ const setData=getSelectedSet(); return setData ? (setData.questions||[]).map(q=>({type:q.type,text:q.text,options:q.options,correct:q.correct??null,explanation:q.explanation||"",durationSec:Number(q.durationSec)||10,points:Number(q.points ?? 1000),imageMode:q.imageMode||"auto",imagePath:q.imagePath||"",backgroundKey:q.backgroundKey||"auto",backgroundHost:q.backgroundHost||"",backgroundMobile:q.backgroundMobile||""})) : []; }
 let selectedQuestionIndices = new Set();
@@ -1782,7 +1801,7 @@ window.startQuiz = async function() {
     );
 
 
-  if (participantCount === 0) {
+  if (participantCount === 0 && !huSolo) {
 
     alert(
       "입장한 참가자가 없습니다.\n" +
@@ -2567,6 +2586,7 @@ onValue(
   ref(database, "answers"),
   (snapshot) => {
 
+    if(huSolo)return;
     currentAnswers = [];
 
 
