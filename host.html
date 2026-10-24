@@ -620,6 +620,16 @@ body.quiz-presenting.hu-warmup #questionMeta{color:#a66b35}
 }
 @media(max-height:730px) and (min-width:721px){body.quiz-presenting #options .option{min-height:78px}body.quiz-presenting #timerPanel{min-height:135px}.hu-clock{width:86px;height:86px}}
 
+
+/* HU Quiz: responsive stage layout */
+#prepareScreen{position:fixed;inset:0;z-index:900;background:radial-gradient(circle at 50% 30%,#fff,#dcecff);display:none;align-items:center;justify-content:center;flex-direction:column;color:#174775;text-align:center;padding:24px}
+#prepareScreen h2{font-size:clamp(26px,4vw,50px)}#prepareCount{font-size:clamp(100px,18vw,190px);font-weight:900;color:#2485dc}
+.podium{display:flex;align-items:flex-end;justify-content:center;gap:12px;min-height:250px}.podium-place{display:flex;flex-direction:column;justify-content:center;gap:12px;width:30%;background:#cce7ff;border-radius:22px 22px 0 0;padding:20px 8px;overflow-wrap:anywhere}.podium-place b{font-size:45px}.podium-place strong{font-size:clamp(18px,3vw,32px)}.place1{min-height:220px;background:#ffe5a0}.place2{min-height:180px}.place3{min-height:150px;background:#f3d5bf}.rank-row{padding:12px;border-bottom:1px solid #dce7f0;text-align:left}.correct-choice{background:#dcfce7!important;border:4px solid #16a34a!important;color:#14532d!important}.wrong-choice{border:4px solid #e34e55!important;opacity:.75}.hu-picture.is-visible{object-fit:contain!important;width:100%;max-height:32vh;background:#ffffffb0;border-radius:18px}.result-note{background:#fffffff0;padding:16px;border-radius:16px;margin-top:12px;line-height:1.5;color:#183b56}
+#rehearsalBar{position:fixed;bottom:0;left:0;right:0;z-index:950;background:#173d60;color:white;padding:8px;display:flex;gap:8px;align-items:center;justify-content:center}#rehearsalBar button{padding:8px;font-size:14px}#mobilePreview{position:fixed;right:12px;top:80px;width:360px;height:75vh;z-index:940;background:white;border:7px solid #173d60;border-radius:24px;display:none}
+
+body.admin-ready:not(.quiz-presenting) #lobbyArea{display:grid;grid-template-columns:310px 1fr;gap:10px 24px;max-width:1200px!important;padding:20px!important}#lobbyArea>h2{grid-column:1/-1}#lobbyArea>div:nth-child(2){grid-column:1;grid-row:2/5}#lobbyArea>div:nth-child(3){grid-column:2;font-size:17px!important;margin:0!important}.hu-participant-heading{grid-column:2}body.admin-ready:not(.quiz-presenting) #participantList{grid-column:2;max-height:none;min-height:190px;display:grid;grid-template-columns:repeat(5,1fr);gap:8px}.participant-chip{overflow-wrap:anywhere;white-space:normal!important;margin:0!important;padding:8px!important}.lobby-quiz-choice{grid-column:1/-1;width:100%;box-sizing:border-box;padding:12px!important}.lobby-quiz-choice button{font-size:17px;padding:12px;margin:5px}body.quiz-presenting #questionArea{display:flex!important;flex-direction:column;min-height:72vh;padding-top:15px}body.quiz-presenting #questionText{max-width:calc(100% - 130px);margin:5px 130px 12px 0!important;padding:16px 24px!important;font-size:clamp(24px,3vw,43px);background:#ffffffe3!important}body.quiz-presenting #timerPanel{position:absolute;right:25px;top:100px;background:transparent!important;min-height:0;padding:0!important}.hu-timer-copy{display:none!important}body.quiz-presenting #options{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;width:100%;margin-top:auto;gap:14px}body.quiz-presenting #options .option{font-size:clamp(20px,2.3vw,34px);min-height:80px;background:#fffffff0;border:3px solid white;border-radius:20px}body.quiz-presenting .controls{margin:10px}.warmup-scene{background:var(--hu-scene) center/contain no-repeat #b9c9c9!important}.warmup-scene #questionArea{min-height:72vh}.warmup-scene #options .option{min-height:66px!important}.quiz-presenting.ranking-stage #questionArea,body.quiz-presenting.ranking-stage #questionArea,.ranking-stage #resultArea{display:none!important}#ranking{background:#fffffff0;border-radius:24px;padding:24px}body[data-type="ox"] #options .option:first-child{color:#147bdb}body[data-type="ox"] #options .option:nth-child(2){color:#dc4747}
+@media(max-width:700px){body.admin-ready:not(.quiz-presenting) #lobbyArea{display:flex;flex-direction:column}#lobbyArea>div:nth-child(2){display:none}body.admin-ready:not(.quiz-presenting) #participantList{grid-template-columns:repeat(3,1fr);min-height:150px}body.quiz-presenting #timerPanel{top:80px;right:10px}body.quiz-presenting #questionText{max-width:calc(100% - 90px);margin-right:90px!important}body.quiz-presenting #options .option{font-size:18px}#mobilePreview{width:85vw;right:2vw}}
+body.quiz-presenting .container{background:transparent!important}body.quiz-presenting{background:linear-gradient(#ffffff28,#ffffff28),var(--hu-scene) center/contain no-repeat fixed #dce8eb!important}body:not(.quiz-presenting) #startButton{display:none!important}body.quiz-presenting #questionMeta{background:#ffffffb8;padding:5px 12px;border-radius:10px}
 </style>
 </head>
 
@@ -743,6 +753,7 @@ body.quiz-presenting.hu-warmup #questionMeta{color:#a66b35}
       <label for="setSelect">출제할 문제 세트</label>
       <select id="setSelect" aria-label="출제할 문제 세트"><option value="">문제 세트를 선택하세요</option></select>
       <div id="selectedSetInfo" class="set-hint">문제 세트를 선택하면 퀴즈를 시작할 수 있습니다.</div>
+      <label><input type="checkbox" id="includeWarmup" checked> 몸풀기 3개 먼저 진행</label><button type="button" onclick="startWarmup()">몸풀기만 시작</button><button type="button" onclick="openRehearsal()">혼자 미리 진행하기</button>
       <button class="primary" id="lobbyStartButton" type="button" onclick="startQuiz()">퀴즈 시작</button>
     </div>
   </div>
@@ -771,8 +782,8 @@ body.quiz-presenting.hu-warmup #questionMeta{color:#a66b35}
        <div id="legacyChoiceFields" style="display:none"><label>보기 (한 줄에 하나씩)</label><textarea id="editOptions" rows="4"></textarea><label>정답</label><textarea id="editCorrect" rows="3"></textarea></div>
        <button type="button" class="secondary" id="previewQuestionBtn">👁 교육생 화면 미리보기</button><div id="questionPreview" class="question-preview" style="display:none"></div>
       <div class="hu-image-editor"><label>문제 이미지 / 배경 설정</label><div class="image-mode-group"><label><input type="radio" name="editImageMode" value="auto" checked>공통 배경 자동 순환</label><label><input type="radio" name="editImageMode" value="custom">문제별 사진</label><label><input type="radio" name="editImageMode" value="none">이미지 없음</label></div><div id="customImageSettings" style="display:none"><label for="editImagePath">사진 파일 경로 또는 HTTPS 주소</label><input class="image-path-input" id="editImagePath" placeholder="예: images/jjajang.jpg"><p class="image-help">사진은 GitHub 저장소의 images 폴더에 업로드한 뒤 파일 경로를 입력하세요. 파일 선택 버튼은 로컬 미리보기용이며 자동 업로드하지 않습니다.</p><input id="localImagePreview" type="file" accept="image/*"><img id="imageEditorPreview" class="hu-picture" alt="문제 사진 미리보기"></div><div class="bg-preview-row"><img src="images/nuclear_dome_01.png" alt="원전 전경 1"><img src="images/nuclear_dome_02.png" alt="원전 전경 2"><img src="images/human_action_01.png" alt="인적행위 1"><img src="images/human_action_02.png" alt="인적행위 2"></div><p class="image-help">공통 배경은 문제마다 네 장을 골고루 순환하며, 같은 이미지가 연속되지 않습니다.</p></div>
-       <label>해설</label><textarea id="editExplanation" rows="2"></textarea>
-      <div class="set-row"><label>제한시간 <select id="editDuration"><option value="10">10초</option><option value="20">20초</option></select></label><label>배점 <select id="editPoints"><option value="0">0점 (몸풀기)</option><option value="1000">1000점</option><option value="2000">2000점 (중요)</option></select></label></div>
+       <label>문제 그림 경로 (배경과 별도)</label><input id="editPicturePath" placeholder="images/example.png"><label>배경 주제</label><select id="editBackgroundPath"><option value="">자동 순환</option><option value="images/nuclear_dome_01.png">원전 낮</option><option value="images/nuclear_dome_02.png">원전 저녁</option><option value="images/human_action_01.png">상호확인</option><option value="images/human_action_02.png">설비 점검</option></select><label>해설</label><textarea id="editExplanation" rows="2"></textarea>
+      <div class="set-row"><label>제한시간 <select id="editDuration"><option value="10">10초</option><option value="20">20초</option><option value="30">30초</option><option value="60">60초</option></select></label><label>배점 <select id="editPoints"><option value="0">0점 (몸풀기)</option><option value="1000">1000점</option><option value="2000">2000점 (중요)</option></select></label></div>
       <button class="primary" id="saveQuestionBtn" type="button">문제 저장</button><button class="secondary" id="cancelQuestionBtn" type="button">취소</button>
     </div>
   </section>
@@ -899,7 +910,7 @@ body.quiz-presenting.hu-warmup #questionMeta{color:#a66b35}
       class="secondary"
       onclick="showRanking()"
       style="display:none;">
-      이번 문제 순위 공개
+      누적 순위 보기
     </button>
 
     <button
@@ -915,7 +926,7 @@ body.quiz-presenting.hu-warmup #questionMeta{color:#a66b35}
 </div>
 
 
-<script type="module">
+<section id="prepareScreen"><div>HU QUIZ</div><h2>이제 곧 문제가 출제됩니다!</h2><div id="prepareCount">3</div></section><script type="module">
 
 import { initializeApp }
 from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
@@ -923,11 +934,11 @@ from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import {
   getDatabase,
   ref,
-  set,
+  set as firebase_set,
   get,
   onValue,
-  remove,
-  update,
+  remove as firebase_remove,
+  update as firebase_update,
   serverTimestamp,
   push
 }
@@ -968,6 +979,31 @@ const firebaseConfig = {
 };
 
 
+const rehearsal = new URLSearchParams(location.search).has('rehearsal');
+const warmups = [
+ {type:'poll',text:'짜장 vs 짬뽕, 당신의 선택은?',options:['짜장','짬뽕'],correct:null},
+ {type:'poll',text:'탕수육, 부먹 vs 찍먹?',options:['부먹','찍먹'],correct:null},
+ {type:'choice',text:'다음 중 목뼈의 개수가 가장 많은 동물은?',options:['사람','기린','개','닭'],correct:'닭',explanation:'사람·기린·개는 목뼈가 7개입니다. 닭은 이보다 많은 목뼈를 가지고 있습니다.'}
+].map((q,i)=>({...q,points:0,durationSec:20,warmup:i+1,imageMode:'auto'}));
+function escapeText(t){return String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function podium(rows){return '<div class="podium">'+[1,0,2].filter(i=>rows[i]).map(i=>'<div class="podium-place place'+(i+1)+'"><b>'+['🥇','🥈','🥉'][i]+'</b><strong>'+escapeText(rows[i].nickname)+'</strong><span>'+(i+1)+'위 · '+rows[i].score+'점</span></div>').join('')+'</div>'+rows.slice(3,7).map((r,i)=>'<div class="rank-row">'+(i+4)+'위　'+escapeText(r.nickname)+'</div>').join('');}
+let prepareTicker;
+function preparation(until){clearInterval(prepareTicker);document.getElementById('prepareScreen').style.display='flex';const tick=()=>{document.getElementById('prepareCount').textContent=Math.max(1,Math.ceil((until-serverNow())/1000));};tick();prepareTicker=setInterval(tick,100);}
+function hidePreparation(){clearInterval(prepareTicker);document.getElementById('prepareScreen').style.display='none';}
+function scene(q,i,target,picture,mobile){
+ const el=document.getElementById(target),img=document.getElementById(picture);
+ const base=q.backgroundPath||HU_BACKGROUNDS[i%4];
+ const path=q.warmup?'images/warmup_0'+q.warmup+'_'+(mobile?'mobile':'host')+'.png':mobile?base.replace(/\.png$/,'_mobile.png'):base;
+ el.style.setProperty('--hu-scene',q.imageMode==='none'?'linear-gradient(#e8f1fa,#d9e8f5)':`url("${path}")`);
+ if(q.imageMode!=='none'){const probe=new Image();probe.onerror=()=>el.style.setProperty('--hu-scene',`url("${base}")`);probe.src=path;}
+ el.classList.toggle('warmup-scene',!!q.warmup);el.dataset.type=q.type;
+ const pic=q.picturePath||(q.imageMode==='custom'?q.imagePath:'');img.classList.toggle('is-visible',!!pic);if(pic){img.src=pic;img.onerror=()=>{img.classList.remove('is-visible');};}else img.removeAttribute('src');
+}
+
+function set(...args){if(rehearsal)throw Error("리허설에서는 실제 데이터 변경이 차단됩니다.");return firebase_set(...args);}
+
+function remove(...args){if(rehearsal)throw Error("리허설 쓰기 차단");return firebase_remove(...args);}
+function update(...args){if(rehearsal)throw Error("리허설 쓰기 차단");return firebase_update(...args);}
 const app =
   initializeApp(firebaseConfig);
 
@@ -1002,11 +1038,13 @@ authForm.addEventListener("submit", async event => {
   } finally { button.disabled = false; }
 });
 
-authPersistenceReady.then(() => onAuthStateChanged(auth, async user => {
+if(!rehearsal) authPersistenceReady.then(() => onAuthStateChanged(auth, async user => {
   adminAuthenticated = Boolean(user && user.uid === ADMIN_UID);
   document.body.classList.toggle("admin-ready", adminAuthenticated);
+  liveStops.splice(0).forEach(stop=>stop());
   if (stopQuizSetsListener) { stopQuizSetsListener(); stopQuizSetsListener = null; }
   if (adminAuthenticated) {
+    attachLiveListeners();
     setLoading = true;
     setMessage.textContent = "문제 세트를 불러오는 중입니다.";
     stopQuizSetsListener = onValue(ref(database,"quizSets"), snapshot => {
@@ -1043,7 +1081,7 @@ document.getElementById("logoutButton").addEventListener("click", async () => {
 
 const HU_BACKGROUNDS=["images/nuclear_dome_01.png","images/human_action_01.png","images/nuclear_dome_02.png","images/human_action_02.png"];
 function huBackground(q,index){const mode=q?.imageMode||"auto";if(mode==="none")return {mode,path:""};if(mode==="custom"&&q?.imagePath)return {mode,path:q.imagePath};return {mode:"auto",path:HU_BACKGROUNDS[index%HU_BACKGROUNDS.length]};}
-function huApplyBackground(q,index,target,picture){const v=huBackground(q,index);const el=document.getElementById(target);const img=document.getElementById(picture);if(v.mode==="none"){el.style.setProperty("--hu-scene","linear-gradient(#e9f0f1,#e9f0f1)");img.classList.remove("is-visible");img.removeAttribute("src");}else if(v.mode==="custom"){el.style.setProperty("--hu-scene","linear-gradient(#e9f0f1,#e9f0f1)");img.src=v.path;img.classList.add("is-visible");img.onerror=()=>{img.classList.remove("is-visible");};}else{el.style.setProperty("--hu-scene",`url("${v.path}")`);img.classList.remove("is-visible");img.removeAttribute("src");}}
+function huApplyBackground(q,index,target,picture){scene(q,index,target,picture,false);}
 function huTimerColors(remainingSec){const bar=document.getElementById("timerBar");bar.classList.toggle("hu-time-low",remainingSec<=5&&remainingSec>3);bar.classList.toggle("hu-time-critical",remainingSec<=3);const clock=document.getElementById("hostClock");if(clock){clock.classList.toggle("low",remainingSec<=5&&remainingSec>3);clock.classList.toggle("critical",remainingSec<=3);}}
 
 const sampleQuestions = [
@@ -1113,7 +1151,7 @@ const setMessage = document.getElementById("setMessage");
 const editor = document.getElementById("setEditor");
 function canEditSets(){ if (!adminAuthenticated) { alert("관리자 로그인이 필요합니다."); return false; } if (quizMode === "question" || quizMode === "result") { alert("퀴즈 진행 중에는 문제 세트를 편집할 수 없습니다."); return false; } return true; }
 function getSelectedSet(){ return quizSets[selectedSetId] || null; }
-function selectedQuestions(){ const setData=getSelectedSet(); return setData ? (setData.questions||[]).map(q=>({type:q.type,text:q.text,options:q.options,correct:q.correct??null,explanation:q.explanation||"",durationSec:Number(q.durationSec)||10,points:Number(q.points ?? 1000),imageMode:q.imageMode||"auto",imagePath:q.imagePath||""})) : []; }
+function selectedQuestions(){ const setData=getSelectedSet(); return setData ? (setData.questions||[]).map(q=>({type:q.type,text:q.text,options:q.options,correct:q.correct??null,explanation:q.explanation||"",durationSec:Number(q.durationSec)||10,points:Number(q.points ?? 1000),imageMode:q.imageMode||"auto",imagePath:q.imagePath||"",picturePath:q.picturePath||"",backgroundPath:q.backgroundPath||""})) : []; }
 let selectedQuestionIndices = new Set();
 let reorderSelectedSetId = "";
 const moveSelectedLabel=document.getElementById("moveSelectedLabel");
@@ -1206,7 +1244,7 @@ function openQuestionEditor(i){if(!canEditSets())return;editQuestionIndex=i;cons
  document.getElementById("editType").value=q.type;document.getElementById("editText").value=q.text;
  document.getElementById("editOptions").value=(q.options||[]).join("\n");document.getElementById("editCorrect").value=Array.isArray(q.correct)?q.correct.join("\n"):(q.correct??"");
  document.getElementById("editExplanation").value=q.explanation||"";document.getElementById("editDuration").value=String(q.durationSec||10);document.getElementById("editPoints").value=String(q.points??1000);
- renderEditorChoices(q.options||[],q.correct);document.querySelector(`input[name="editImageMode"][value="${q.imageMode||"auto"}"]`).checked=true;document.getElementById("editImagePath").value=q.imagePath||"";huToggleImageEditor();document.getElementById("questionPreview").style.display="none";editor.style.display="block";editor.scrollIntoView({behavior:"smooth",block:"nearest"});
+ document.getElementById("editPicturePath").value=q.picturePath||"";document.getElementById("editBackgroundPath").value=q.backgroundPath||"";renderEditorChoices(q.options||[],q.correct);document.querySelector(`input[name="editImageMode"][value="${q.imageMode||"auto"}"]`).checked=true;document.getElementById("editImagePath").value=q.imagePath||"";huToggleImageEditor();document.getElementById("questionPreview").style.display="none";editor.style.display="block";editor.scrollIntoView({behavior:"smooth",block:"nearest"});
 }
 document.getElementById("addQuestionBtn").onclick=()=>{if(!getSelectedSet()){alert("먼저 문제 세트를 만들어 주세요.");return;}openQuestionEditor(-1);};
 document.getElementById("cancelQuestionBtn").onclick=()=>editor.style.display="none";
@@ -1227,7 +1265,7 @@ function collectEditorQuestion(){
  if(type==="order"&&options.length!==4)throw Error("순서형 문제는 4개 선택지를 입력하세요.");
  if(type!=="poll"&&(type==="order"?(correct.length!==options.length||correct.some(x=>!options.includes(x))||new Set(correct).size!==options.length):type==="multi"?(!correct.length||correct.some(x=>!options.includes(x))||new Set(correct).size!==correct.length):!options.includes(correct)))throw Error("정답을 올바르게 지정하세요. 순서형은 1~4번을 중복 없이 한 번씩 선택해야 합니다.");
  const points=type==="poll"?0:Number(document.getElementById("editPoints").value);
- return {type,text,options,correct,imageMode:document.querySelector('input[name="editImageMode"]:checked').value,imagePath:document.getElementById("editImagePath").value.trim(),explanation:document.getElementById("editExplanation").value.trim(),durationSec:Number(document.getElementById("editDuration").value),points};
+ return {type,text,options,correct,picturePath:document.getElementById("editPicturePath").value.trim(),backgroundPath:document.getElementById("editBackgroundPath").value,imageMode:document.querySelector('input[name="editImageMode"]:checked').value,imagePath:document.getElementById("editImagePath").value.trim(),explanation:document.getElementById("editExplanation").value.trim(),durationSec:Number(document.getElementById("editDuration").value),points};
 }
 document.getElementById("saveQuestionBtn").onclick=async()=>{if(!canEditSets())return;let q;try{q=collectEditorQuestion();}catch(e){alert(e.message);return;}
  const items=[...(getSelectedSet().questions||[])];q.enabled=true;
@@ -1362,6 +1400,7 @@ function startHostTimer(startedAt, durationSec) {
     document.getElementById("hostClock")?.style.setProperty("--clock-progress",String(Math.max(0,Math.min(100,remainingMs/totalMs*100)))+"%");
     if (remainingMs <= 0) {
       stopTimer();
+      if(quizMode==="question") window.revealAnswer();
 
       document.getElementById("status")
         .textContent = "응답시간 종료";
@@ -1422,6 +1461,7 @@ let resetInProgress = false;
 
 window.resetQuiz = async function() {
   if (!adminAuthenticated) { alert("관리자 로그인이 필요합니다."); return; }
+  if(rehearsal)return;
   if (resetInProgress) return;
 
   const participantCount = document.getElementById("participantCount").textContent;
@@ -1434,6 +1474,7 @@ window.resetQuiz = async function() {
   );
   if (!ok) return;
 
+  stageToken++; hidePreparation(); document.body.classList.remove("ranking-stage");
   resetInProgress = true;
   const resetButton = document.getElementById("resetButton");
   resetButton.disabled = true;
@@ -1548,158 +1589,24 @@ function displayQuestion() {
    퀴즈 시작
 ============================== */
 
-window.startQuiz = async function() {
-  if (!adminAuthenticated) { alert("관리자 로그인이 필요합니다."); return; }
-
-  /*
-    참가자가 한 명도 없을 때
-    실수로 시작하는 것도 방지
-  */
-
-  const participantCount =
-    Number(
-      document.getElementById(
-        "participantCount"
-      ).textContent
-    );
-
-
-  if (participantCount === 0) {
-
-    alert(
-      "입장한 참가자가 없습니다.\n" +
-      "참가자 입장 후 퀴즈를 시작해주세요."
-    );
-
-    return;
-
-  }
-
-
-  questions = selectedQuestions();
-  if (!questions.length) { alert("출제할 문제를 한 개 이상 선택하세요."); return; }
-  currentQuestion = 0;
-
-  currentAnswers = [];
-
-  quizMode = "question";
-
-
-  document.body.classList.add("quiz-presenting");
-  window.scrollTo(0,0);
-  document.getElementById("managementPanel")
-    .style.display =
-    "none";
-
-
-  document.getElementById("lobbyArea")
-    .style.display =
-    "none";
-
-
-  document.getElementById("questionArea")
-    .style.display =
-    "block";
-
-
-  /*
-    새 퀴즈 시작 시
-    이전 답변만 초기화
-  */
-
-  await remove(
-    ref(database, "answers")
-  );
-
-  await remove(
-    ref(database, "questionScores")
-  );
-
-
-  const startedAt =
-    serverNow();
-
-  const durationSec =
-    questions[0].durationSec;
-
-
-  await set(
-    ref(database, "quizState"),
-    {
-      status: "question",
-      question: 0,
-      revealed: false,
-      startedAt: startedAt,
-      durationSec: durationSec,
-      questions: questions
-    }
-  );
-
-
-  displayQuestion();
-
-  startHostTimer(
-    startedAt,
-    durationSec
-  );
-
-
-  document.getElementById("status")
-    .textContent =
-    "문제 진행 중";
-
-
-  document.getElementById("startButton")
-    .style.display =
-    "none";
-
-
-  document.getElementById("answerButton")
-    .style.display =
-    "inline-block";
-  document.getElementById("answerButton").textContent = questions[0].type === "poll" ? "투표 마감 · 결과 보기" : "정답 공개";
-
-
-  document.getElementById("rankButton")
-    .style.display =
-    "none";
-
-
-  document.getElementById("nextButton")
-    .style.display =
-    "none";
-
-
-  document.getElementById("resultArea")
-    .style.display =
-    "none";
-
-
-  document.getElementById("ranking")
-    .style.display =
-    "none";
-
-
-  updateManagementState();
-
-};
-
-
 /* ==============================
    정답 공개
 ============================== */
 
 window.revealAnswer = async function() {
-  if (!adminAuthenticated) { alert("관리자 로그인이 필요합니다."); return; }
+  if (!adminAuthenticated && !rehearsal) { alert("관리자 로그인이 필요합니다."); return; }
 
-  if (quizMode !== "question") {
+  if (quizMode !== "question" || revealBusy) {
     return;
   }
 
+  revealBusy=true;
+  try {
   const q =
     questions[currentQuestion];
 
   stopTimer();
+  if(!rehearsal){const snapshot=await get(ref(database,"answers"));currentAnswers=Object.values(snapshot.val()||{}).filter(a=>Number(a.question)===currentQuestion);}
 
   /*
     점수 계산 기준:
@@ -1797,7 +1704,7 @@ window.revealAnswer = async function() {
   });
 
 
-  await set(
+  await hostSet(
     ref(
       database,
       "questionScores/" + currentQuestion
@@ -1814,9 +1721,11 @@ window.revealAnswer = async function() {
     "result";
 
 
-  await set(
+  await hostSet(
     ref(database, "quizState"),
     {
+      distribution: q.options.map(option=>currentAnswers.filter(a=>Array.isArray(a.answer)?a.answer.includes(option):a.answer===option).length),
+      responseTotal:currentAnswers.length,
       status: "result",
       question: currentQuestion,
       revealed: true,
@@ -1852,7 +1761,8 @@ window.revealAnswer = async function() {
 
 
   updateManagementState();
-
+  document.getElementById("nextButton").style.display=q.warmup||q.type==="poll"||Number(q.points)===0?"inline-block":"none";
+  } catch(e){alert("정답 공개 실패: "+e.message);} finally {revealBusy=false;}
 };
 
 
@@ -1871,10 +1781,10 @@ function showResults(q) {
   const correctText = Array.isArray(q.correct)
     ? q.correct.join(q.type === "order" ? " → " : ", ")
     : String(q.correct ?? "");
-  answerBox.style.display = isPoll ? "none" : "block";
+  answerBox.style.display = "none";
   answerBox.textContent = isPoll ? "" : "정답 : " + correctText;
   explanationBox.textContent = q.explanation || "";
-  explanationBox.style.display = "none";
+  explanationBox.style.display = "block";
   const explainToggle=document.getElementById("explanationToggle");
   explainToggle.style.display=q.explanation?"inline-block":"none";
   explainToggle.textContent="해설 보기";
@@ -1886,7 +1796,7 @@ function renderAnswerStatistics(q) {
   const optionsDiv = document.getElementById("options");
   const isPoll = q.type === "poll";
   let entries;
-  if (q.type === "order") {
+  if (false) {
     const counts = new Map();
     for (const data of currentAnswers) {
       const key = Array.isArray(data.answer) ? data.answer.join(" → ") : String(data.answer ?? "").split(",").join(" → ");
@@ -1912,14 +1822,14 @@ function renderAnswerStatistics(q) {
     const card = document.createElement("div");
     card.className = "option stat-option";
     const correct = !isPoll && (Array.isArray(q.correct)
-      ? q.type === "multi" ? q.correct.includes(option) : q.type === "order" ? option === q.correct.join(" → ") : false
+      ? q.type === "multi" ? q.correct.includes(option) : q.type === "order" ? q.correct.includes(option) : false
       : option === q.correct);
     if (correct) card.classList.add("correct-choice");
     const heading = document.createElement("div");
     heading.className = "stat-heading";
     const label = document.createElement("span");
     label.className = "stat-label";
-    label.textContent = (q.type === "ox" || q.type === "order" ? "" : (i+1)+". ") + option + (correct ? " ✓" : "");
+    label.textContent = (q.type==="order" ? (q.correct.indexOf(option)+1)+"번째 · " : "") + (q.type === "ox" || q.type === "order" ? "" : (i+1)+". ") + option + (correct ? " ✓" : "");
     const countText = document.createElement("span");
     countText.className = "stat-count";
     countText.textContent = `${count}명 (${percent.toFixed(1)}%)`;
@@ -1940,408 +1850,13 @@ function renderAnswerStatistics(q) {
    순위 공개
 ============================== */
 
-window.showRanking = async function() {
-  if (!adminAuthenticated) { alert("관리자 로그인이 필요합니다."); return; }
-
-  const list =
-    document.getElementById("rankingList");
-
-  list.innerHTML = "";
-
-
-  /* 퀴즈 종료 후에는 누적 최종 순위 */
-  if (quizMode === "finished") {
-
-    const snapshot =
-      await get(
-        ref(database, "questionScores")
-      );
-
-    const totals = {};
-
-    snapshot.forEach(questionChild => {
-
-      questionChild.forEach(scoreChild => {
-
-        const data =
-          scoreChild.val();
-
-        const id =
-          data.participantId ||
-          data.nickname;
-
-        if (!totals[id]) {
-          totals[id] = {
-            nickname: data.nickname,
-            score: 0
-          };
-        }
-
-        totals[id].score +=
-          Number(data.score) || 0;
-
-      });
-
-    });
-
-
-    const sorted =
-      Object.values(totals)
-        .sort((a,b) => b.score - a.score);
-
-
-    document.getElementById("rankingTitle")
-      .textContent =
-      "🏆 HU Quiz 최종 결과";
-
-
-    if (sorted.length === 0) {
-
-      list.innerHTML =
-        "<div class='rank-item'>점수 데이터가 없습니다.</div>";
-
-    } else {
-
-      sorted.slice(0,3)
-        .forEach((item,index) => {
-
-          const div =
-            document.createElement("div");
-
-          div.className =
-            "rank-item top3";
-
-          const medal =
-            index === 0 ? "🥇" :
-            index === 1 ? "🥈" : "🥉";
-
-          div.textContent =
-            medal +
-            " " +
-            item.nickname +
-            "  " +
-            item.score +
-            "점";
-
-          list.appendChild(div);
-
-        });
-
-    }
-
-    document.getElementById("rankCloseButton")
-      .style.display =
-      "none";
-
-  } else {
-
-    /* 진행 중에는 현재 문제 순위만 */
-    const snapshot =
-      await get(
-        ref(
-          database,
-          "questionScores/" + currentQuestion
-        )
-      );
-
-    const rows = [];
-
-    snapshot.forEach(child => {
-      rows.push(child.val());
-    });
-
-    rows.sort((a,b) => {
-
-      if (
-        Number(b.score) !==
-        Number(a.score)
-      ) {
-        return Number(b.score) -
-               Number(a.score);
-      }
-
-      return Number(a.submittedAt) -
-             Number(b.submittedAt);
-
-    });
-
-
-    document.getElementById("rankingTitle")
-      .textContent =
-      "⚡ 이번 문제 순위";
-
-
-    if (rows.length === 0) {
-
-      list.innerHTML =
-        "<div class='rank-item'>정답자가 없습니다.</div>";
-
-    } else {
-
-      rows.slice(0,6)
-        .forEach((item,index) => {
-
-          const div =
-            document.createElement("div");
-
-          div.className =
-            index < 3
-              ? "rank-item top3"
-              : "rank-item lower";
-
-          const prefix =
-            index === 0 ? "🥇" :
-            index === 1 ? "🥈" :
-            index === 2 ? "🥉" :
-            (index + 1) + "위";
-
-          div.textContent =
-            prefix +
-            " " +
-            item.nickname +
-            "  " +
-            item.score +
-            "점";
-
-          list.appendChild(div);
-
-        });
-
-    }
-
-
-    document.getElementById("rankCloseButton")
-      .style.display =
-      "inline-block";
-
-  }
-
-
-  document.getElementById("ranking")
-    .style.display =
-    "block";
-
-};
-
-
-window.closeRanking = function() {
-  if (!adminAuthenticated) { alert("관리자 로그인이 필요합니다."); return; }
-
-  if (quizMode !== "result") {
-    return;
-  }
-
-  document.getElementById("ranking")
-    .style.display =
-    "none";
-
-};
-
-
-/* ==============================
-   다음 문제
-============================== */
-
-window.nextQuestion = async function() {
-  if (!adminAuthenticated) { alert("관리자 로그인이 필요합니다."); return; }
-
-  if (quizMode !== "result") {
-    return;
-  }
-
-
-  currentQuestion++;
-
-
-  /* 마지막 문제 종료 */
-
-  if (
-    currentQuestion >=
-    questions.length
-  ) {
-
-    quizMode =
-      "finished";
-
-
-    document.getElementById("status")
-      .textContent =
-      "퀴즈 종료";
-
-
-    document.getElementById("questionNumber")
-      .textContent =
-      "퀴즈 종료";
-
-
-    document.getElementById("questionText")
-      .innerHTML =
-      "🎉 수고하셨습니다!";
-
-
-    document.getElementById("options")
-      .innerHTML =
-      "";
-
-
-    document.getElementById("responseArea")
-      .style.display =
-      "none";
-
-    document.getElementById("timerPanel")
-      .style.display =
-      "none";
-
-    document.getElementById("questionMeta")
-      .style.display =
-      "none";
-
-
-    document.getElementById("resultArea")
-      .style.display =
-      "none";
-
-
-    document.getElementById("nextButton")
-      .style.display =
-      "none";
-
-
-    document.getElementById("answerButton")
-      .style.display =
-      "none";
-
-
-    document.getElementById("rankButton")
-      .style.display =
-      "none";
-
-
-    await set(
-      ref(database, "quizState"),
-      {
-        status: "finished",
-        finishedAt: Date.now(),
-        questions: questions
-      }
-    );
-
-
-    updateManagementState();
-
-
-    /*
-      종료 시 최종 순위 자동 표시
-    */
-
-    await window.showRanking();
-
-
-    return;
-
-  }
-
-
-  /* 다음 문제 */
-
-  quizMode =
-    "question";
-
-
-  currentAnswers = [];
-
-  questionScores = [];
-
-
-  const startedAt =
-    serverNow();
-
-  const durationSec =
-    questions[currentQuestion].durationSec;
-
-
-  await set(
-    ref(database, "quizState"),
-    {
-      status: "question",
-      question: currentQuestion,
-      revealed: false,
-      startedAt: startedAt,
-      durationSec: durationSec,
-      questions: questions
-    }
-  );
-
-
-  displayQuestion();
-
-  startHostTimer(
-    startedAt,
-    durationSec
-  );
-
-
-  document.getElementById("status")
-    .textContent =
-    "문제 진행 중";
-
-
-  document.getElementById("responseArea")
-    .style.display =
-    "block";
-
-  document.getElementById("timerPanel")
-    .style.display =
-    "block";
-
-  document.getElementById("questionMeta")
-    .style.display =
-    "block";
-
-
-  document.getElementById("responseCount")
-    .textContent =
-    "0";
-
-
-  document.getElementById("resultArea")
-    .style.display =
-    "none";
-
-
-  document.getElementById("ranking")
-    .style.display =
-    "none";
-
-
-  document.getElementById("answerButton")
-    .style.display =
-    "inline-block";
-  document.getElementById("answerButton").textContent =
-    questions[currentQuestion].type === "poll" ? "투표 마감 · 결과 보기" : "정답 공개";
-
-  window.scrollTo(0,0);
-
-  document.getElementById("rankButton")
-    .style.display =
-    "none";
-
-
-  document.getElementById("nextButton")
-    .style.display =
-    "none";
-
-
-  updateManagementState();
-
-};
-
-
 /* ==============================
    참가자 실시간 표시
 ============================== */
 
-onValue(
+const liveStops=[];
+function attachLiveListeners(){liveStops.splice(0).forEach(stop=>stop());
+liveStops.push(onValue(
   ref(database, "participants"),
   (snapshot) => {
 
@@ -2381,14 +1896,14 @@ onValue(
     names.forEach(name=>{const chip=document.createElement("span");chip.className="participant-chip";chip.textContent=name;participantList.appendChild(chip);});
 
   }
-);
+, error => { document.getElementById("status").textContent="연결 오류: "+error.code; console.error(error); }));
 
 
 /* ==============================
    현재 문제 답변 실시간 수신
 ============================== */
 
-onValue(
+liveStops.push(onValue(
   ref(database, "answers"),
   (snapshot) => {
 
@@ -2424,14 +1939,30 @@ onValue(
     }
 
   }
-);
+, error => { document.getElementById("status").textContent="연결 오류: "+error.code; console.error(error); }));
 
 
+}
 /* ==============================
    초기 관리 상태
 ============================== */
 
 updateManagementState();
+
+let skipPreparation=null;
+let revealBusy=false, localScores={}, localState=null, runBusy=false, stageToken=0;
+const previewChannel = new BroadcastChannel('hu-quiz-rehearsal');
+previewChannel.onmessage=e=>{if(!rehearsal)return;if(e.data.kind==='ready'&&localState)previewChannel.postMessage({kind:'state',state:localState});if(e.data.kind==='answer'){currentAnswers=[{...e.data.answer,participantId:'preview',nickname:'미리보기',question:currentQuestion,submittedAt:serverNow()}];}};
+async function hostSet(path,value){if(rehearsal){const key=path.toString();if(key.includes('/questionScores/'))localScores[currentQuestion]=value;else if(key.endsWith('/quizState')){localState=value;previewChannel.postMessage({kind:'state',state:value});}return;}return set(path,value);}
+function stageView(){document.body.classList.add('quiz-presenting');document.getElementById('lobbyArea').style.display='none';document.getElementById('ranking').style.display='none';document.getElementById('resultArea').style.display='none';document.getElementById('questionArea').style.display='block';document.body.classList.remove('ranking-stage');}
+async function prepareQuestion(){const token=++stageToken;quizMode='preparing';stageView();['answerButton','rankButton','nextButton','startButton'].forEach(id=>document.getElementById(id).style.display='none');const until=serverNow()+3000;await hostSet(ref(database,'quizState'),{status:'preparing',question:currentQuestion,prepareUntil:until,questions});preparation(until);const launch=async()=>{if(token!==stageToken||quizMode!=='preparing')return;try{hidePreparation();currentAnswers=[];questionStartedAt=serverNow();quizMode='question';await hostSet(ref(database,'quizState'),{status:'question',question:currentQuestion,startedAt:questionStartedAt,durationSec:questions[currentQuestion].durationSec,questions});displayQuestion();document.getElementById('timerPanel').style.display='flex';document.getElementById('answerButton').style.display='inline-block';document.getElementById('status').textContent='문제 진행 중';startHostTimer(questionStartedAt,questions[currentQuestion].durationSec);}catch(e){alert('문제 시작 실패: '+e.message);}};skipPreparation=launch;setTimeout(launch,Math.max(0,until-serverNow()));}
+async function begin(warmOnly=false){if(runBusy||(!adminAuthenticated&&!rehearsal))return;const chosen=selectedQuestions();if(!warmOnly&&!chosen.length){alert('문제 세트를 선택하세요.');return;}if(!rehearsal&&Number(document.getElementById('participantCount').textContent)===0){alert('참가자 입장 후 시작하세요. 혼자 확인하려면 리허설을 이용하세요.');return;}runBusy=true;try{questions=warmOnly?structuredClone(warmups):[...(document.getElementById('includeWarmup').checked?structuredClone(warmups):[]),...chosen];currentQuestion=0;localScores={};if(!rehearsal)await update(ref(database),{answers:null,questionScores:null});await prepareQuestion();}catch(e){alert(e.message);}finally{runBusy=false;}}
+window.startQuiz=()=>begin();window.startWarmup=()=>begin(true);
+async function rankingRows(){const scores=rehearsal?localScores:(await get(ref(database,'questionScores'))).val()||{};const people=rehearsal?{preview:{nickname:'미리보기'}}:(await get(ref(database,'participants'))).val()||{};const totals={};for(const [id,p] of Object.entries(people))totals[id]={nickname:p.nickname,score:0};for(const group of Object.values(scores))for(const [id,r] of Object.entries(group||{})){totals[id]??={nickname:r.nickname,score:0};totals[id].score+=Number(r.score)||0;}return Object.values(totals).sort((a,b)=>b.score-a.score||a.nickname.localeCompare(b.nickname,'ko'));}
+window.showRanking=async()=>{if(!adminAuthenticated&&!rehearsal)return;try{const rows=await rankingRows();quizMode='ranking';document.body.classList.add('ranking-stage');document.getElementById('ranking').style.display='block';document.getElementById('rankingTitle').textContent='🏆 누적 순위';document.getElementById('rankingList').innerHTML=podium(rows);document.getElementById('rankCloseButton').style.display='none';document.getElementById('rankButton').style.display='none';document.getElementById('nextButton').style.display='inline-block';await hostSet(ref(database,'quizState'),{status:'ranking',question:currentQuestion,questions,ranking:rows});}catch(e){alert('순위 조회 실패: '+e.message);}};
+window.nextQuestion=async()=>{if(runBusy||!['result','ranking'].includes(quizMode))return;runBusy=true;try{if(++currentQuestion>=questions.length){quizMode='finished';stopTimer();const rows=await rankingRows();await hostSet(ref(database,'quizState'),{status:'finished',questions,ranking:rows});document.body.classList.add('ranking-stage');document.getElementById('ranking').style.display='block';document.getElementById('rankingTitle').textContent='🎉 퀴즈 종료 · 최종 순위';document.getElementById('rankingList').innerHTML=podium(rows);document.getElementById('nextButton').style.display='none';document.getElementById('rankButton').style.display='none';document.getElementById('status').textContent='퀴즈 종료';}else await prepareQuestion();}catch(e){alert(e.message);}finally{runBusy=false;}};
+window.openRehearsal=()=>{sessionStorage.setItem('huRehearsalSet',JSON.stringify(selectedQuestions()));window.open('host.html?rehearsal=1','_blank');};
+if(rehearsal){adminAuthenticated=true;document.body.classList.add('admin-ready');document.getElementById('authGate').style.display='none';const saved=JSON.parse(sessionStorage.getItem('huRehearsalSet')||'[]');selectedQuestions=()=>saved.length?saved:[{type:'ox',text:'작업 전 대상 설비를 확인해야 한다.',options:['O','X'],correct:'O',durationSec:10,points:1000},{type:'choice',text:'작업 전 가장 먼저 할 일은?',options:['대상 확인','즉시 조작'],correct:'대상 확인',durationSec:10,points:1000},{type:'choice',text:'안전한 작업 방법은?',options:['확인','추측','생략','서두르기'],correct:'확인',durationSec:10,points:1000},{type:'order',text:'숫자를 작은 순서대로 선택하세요.',options:['3','1','4','2'],correct:['1','2','3','4'],durationSec:10,points:1000},{type:'multi',text:'짝수를 모두 선택하세요.',options:['1','2','3','4'],correct:['2','4'],durationSec:10,points:1000}];document.body.insertAdjacentHTML('beforeend','<div id="rehearsalBar">리허설 · 실제 수업과 분리 <button id="toggleMobile">교육생 화면</button><button id="skipStage">시간 건너뛰기</button><button id="endRehearsal">종료 / 대기</button></div><iframe id="mobilePreview" src="index.html?rehearsal=1"></iframe>');document.getElementById('toggleMobile').onclick=()=>{const f=document.getElementById('mobilePreview');f.style.display=f.style.display==='block'?'none':'block';};document.getElementById('skipStage').onclick=()=>{if(quizMode==='preparing')skipPreparation?.();else if(quizMode==='question')window.revealAnswer();else if(quizMode==='result')window.showRanking();else if(quizMode==='ranking')window.nextQuestion();};document.getElementById('endRehearsal').onclick=()=>location.reload();document.getElementById('managementPanel').style.display='none';document.getElementById('openSetManagerBtn').style.display='none';document.querySelectorAll('.manage-button').forEach(b=>b.style.display='none');document.getElementById('lobbyStartButton').disabled=false;}
 
 </script>
 
