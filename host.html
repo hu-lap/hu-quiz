@@ -637,6 +637,17 @@ body.quiz-presenting #options .option{border-radius:17px;box-shadow:0 4px 14px #
 body.quiz-presenting .controls button,.lobby-quiz-choice button{border-radius:12px;box-shadow:0 3px 10px #17374d10}
 body.quiz-presenting #timerPanel{box-shadow:0 4px 15px #17374d0e}
 button:focus-visible{outline:3px solid #145e95;outline-offset:4px}
+
+/* 단일 배경 선택 UI */
+.hu-bg-choices{display:grid;grid-template-columns:repeat(auto-fill,minmax(135px,1fr));gap:11px;margin:12px 0}
+.hu-bg-tile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;min-height:125px;padding:8px!important;background:#f2f6f9!important;color:#173a56!important;border:2px solid #c9d9e3!important;border-radius:12px!important;cursor:pointer}
+.hu-bg-tile img{width:100%;height:80px;object-fit:cover;border-radius:7px}
+.hu-bg-tile strong{font-size:13px;text-align:center}
+.hu-bg-tile.is-selected{border:3px solid #1678b9!important;background:#e3f3ff!important;box-shadow:0 0 0 2px #b7e2fc}
+.hu-bg-symbol{font-size:33px;min-height:70px;display:grid;place-items:center}
+.hu-bg-current{font-size:13px;color:#29516d;margin:8px 0 12px}
+.hu-illustration-editor{border-top:1px solid #d4e0e8;padding-top:16px;margin-top:15px}
+.hu-illustration-editor input[type=file]{margin-top:8px;max-width:100%}
 </style>
 </head>
 
@@ -787,7 +798,28 @@ button:focus-visible{outline:3px solid #145e95;outline-offset:4px}
       <div id="structuredChoices"><label>선택지 (각 항목을 따로 입력하고 정답을 체크하세요)</label><div id="choiceInputs"></div><div id="orderAnswerPanel" style="display:none"><label>정답 선택 순서</label><div id="orderAnswerInputs" class="order-answer-inputs"></div><p class="set-hint">화면에 표시된 1~4번 중 올바른 선택 순서를 지정합니다.</p></div></div>
        <div id="legacyChoiceFields" style="display:none"><label>보기 (한 줄에 하나씩)</label><textarea id="editOptions" rows="4"></textarea><label>정답</label><textarea id="editCorrect" rows="3"></textarea></div>
        <button type="button" class="secondary" id="previewQuestionBtn">👁 교육생 화면 미리보기</button><div id="questionPreview" class="question-preview" style="display:none"></div>
-      <div class="hu-image-editor"><label for="editBackgroundKey">문제 배경 선택</label><select id="editBackgroundKey"><option value="auto">기존 설정 / 자동 순환</option><option value="none">단색 배경</option><option value="nuclear_dome_01">원전 낮</option><option value="nuclear_dome_02">원전 저녁</option><option value="human_action_01">작업 전 상호확인</option><option value="human_action_02">설비·밸브 점검</option><option value="warmup_01">몸풀기: 짜장·짬뽕</option><option value="warmup_02">몸풀기: 부먹·찍먹</option><option value="warmup_03">몸풀기: 사람·기린·개·닭</option><option value="custom">직접 경로 지정</option></select><div><button type="button" id="chooseHostBackground" class="secondary">🖼 강사용 그림 고르기</button><button type="button" id="chooseMobileBackground" class="secondary">📱 모바일용 그림 고르기</button></div><div id="huBackgroundPaths" hidden><label>강사용 배경 경로</label><input id="editBackgroundHost" class="image-path-input" placeholder="images/my_host.png"><label>모바일용 배경 경로</label><input id="editBackgroundMobile" class="image-path-input" placeholder="images/my_mobile.png"></div><p class="image-help">기본 배경은 주제 하나를 선택하면 강사용·모바일용이 자동 연결됩니다. 직접 경로 지정 시 각각 입력할 수 있습니다. 사진 파일은 images 폴더에 먼저 업로드하세요.</p><label>문제 이미지 / 배경 설정</label><div class="image-mode-group"><label><input type="radio" name="editImageMode" value="auto" checked>공통 배경 자동 순환</label><label><input type="radio" name="editImageMode" value="custom">문제별 사진</label><label><input type="radio" name="editImageMode" value="none">이미지 없음</label></div><div id="customImageSettings" style="display:none"><label for="editImagePath">사진 파일 경로 또는 HTTPS 주소</label><input class="image-path-input" id="editImagePath" placeholder="예: images/jjajang.jpg"><p class="image-help">사진은 GitHub 저장소의 images 폴더에 업로드한 뒤 파일 경로를 입력하세요. 파일 선택 버튼은 로컬 미리보기용이며 자동 업로드하지 않습니다.</p><input id="localImagePreview" type="file" accept="image/*"><img id="imageEditorPreview" class="hu-picture" alt="문제 사진 미리보기"></div><div class="bg-preview-row"><img src="images/nuclear_dome_01.png" alt="원전 전경 1"><img src="images/nuclear_dome_02.png" alt="원전 전경 2"><img src="images/human_action_01.png" alt="인적행위 1"><img src="images/human_action_02.png" alt="인적행위 2"></div><p class="image-help">공통 배경은 문제마다 네 장을 골고루 순환하며, 같은 이미지가 연속되지 않습니다.</p></div>
+      <div class="hu-image-editor hu-unified-background">
+        <label>문제 배경 선택</label>
+        <p class="image-help">자동 순환, 그림 선택, 기본 배경 중 하나만 선택하세요. 그림은 미리 보고 고를 수 있습니다.</p>
+        <div class="hu-bg-choices" id="huBgChoices">
+          <button type="button" class="hu-bg-tile" data-bg="auto"><span class="hu-bg-symbol">🔄</span><strong>4개 자동 순환</strong></button>
+          <button type="button" class="hu-bg-tile" data-bg="none"><span class="hu-bg-symbol">▧</span><strong>그림 없음 (기본)</strong></button>
+          <button type="button" class="hu-bg-tile" data-bg="nuclear_dome_01"><img src="images/nuclear_dome_01.png" alt="원전 낮"><strong>원전 낮</strong></button>
+          <button type="button" class="hu-bg-tile" data-bg="nuclear_dome_02"><img src="images/nuclear_dome_02.png" alt="원전 저녁"><strong>원전 저녁</strong></button>
+          <button type="button" class="hu-bg-tile" data-bg="human_action_01"><img src="images/human_action_01.png" alt="작업 전 상호확인"><strong>작업 전 확인</strong></button>
+          <button type="button" class="hu-bg-tile" data-bg="human_action_02"><img src="images/human_action_02.png" alt="설비 점검"><strong>설비 점검</strong></button>
+          
+        </div>
+        <p id="huInlineGalleryStatus" class="image-help" role="status">GitHub 이미지 목록을 불러옵니다.</p>
+        <div class="hu-bg-choices" id="huAllHostImages"></div>
+        <button type="button" class="secondary" id="huRefreshImages">이미지 목록 새로고침</button>
+        <div class="hu-bg-current" id="huBgCurrent" aria-live="polite"></div>
+        <select id="editBackgroundKey" hidden aria-label="문제 배경 유형"><option value="auto">자동 순환</option><option value="none">기본 배경</option><option value="nuclear_dome_01">원전 낮</option><option value="nuclear_dome_02">원전 저녁</option><option value="human_action_01">작업 전 확인</option><option value="human_action_02">설비 점검</option><option value="warmup_01">몸풀기 1</option><option value="warmup_02">몸풀기 2</option><option value="warmup_03">몸풀기 3</option><option value="custom">직접 선택한 그림</option></select>
+        <div id="huBackgroundPaths" hidden><label>선택한 배경 파일</label><input id="editBackgroundHost" class="image-path-input" placeholder="images/배경.png"><input id="editBackgroundMobile" type="hidden"></div>
+        <div class="hu-illustration-editor"><label for="editImagePath">문제 안에 표시할 그림 (선택 사항 · 배경과 별개)</label><input class="image-path-input" id="editImagePath" placeholder="예: images/animals.png (없으면 빈칸)"><img id="imageEditorPreview" class="hu-picture" alt="문제 그림 미리보기"><input id="localImagePreview" type="file" accept="image/*"><p class="image-help">문제 그림은 GitHub images 폴더에 업로드한 뒤 경로를 입력하세요. 파일 선택은 미리보기만 가능합니다.</p></div>
+        <div class="image-mode-group" hidden><label><input type="radio" name="editImageMode" value="auto" checked>자동</label><label><input type="radio" name="editImageMode" value="custom">그림</label><label><input type="radio" name="editImageMode" value="none">없음</label></div>
+        <div id="customImageSettings" hidden></div>
+      </div>
        <label>해설</label><textarea id="editExplanation" rows="2"></textarea>
       <div class="set-row"><label>제한시간 <select id="editDuration"><option value="10">10초</option><option value="20">20초</option></select></label><label>배점 <select id="editPoints"><option value="0">0점 (몸풀기)</option><option value="1000">1000점</option><option value="2000">2000점 (중요)</option></select></label></div>
       <button class="primary" id="saveQuestionBtn" type="button">문제 저장</button><button class="secondary" id="cancelQuestionBtn" type="button">취소</button>
@@ -1270,12 +1302,25 @@ function renderEditorChoices(options=[],correct=null){
  }else document.getElementById("orderAnswerPanel").style.display="none";
 }
 
-function huToggleImageEditor(){const mode=document.querySelector('input[name="editImageMode"]:checked')?.value;document.getElementById("customImageSettings").style.display=mode==="custom"?"block":"none";const img=document.getElementById("imageEditorPreview");const path=document.getElementById("editImagePath").value.trim();if(mode==="custom"&&path){img.src=path;img.classList.add("is-visible");}else img.classList.remove("is-visible");}
-document.querySelectorAll('input[name="editImageMode"]').forEach(el=>el.addEventListener("change",huToggleImageEditor));
-document.getElementById("editImagePath").addEventListener("input",huToggleImageEditor);
-document.getElementById("localImagePreview").addEventListener("change",event=>{const file=event.target.files?.[0];if(!file)return;const img=document.getElementById("imageEditorPreview");img.src=URL.createObjectURL(file);img.classList.add("is-visible");});
-
-document.getElementById("editBackgroundKey").onchange=()=>{document.getElementById("huBackgroundPaths").hidden=document.getElementById("editBackgroundKey").value!=="custom";};
+function huToggleImageEditor(){
+ const path=document.getElementById('editImagePath').value.trim();
+ document.querySelector(`input[name="editImageMode"][value="${path?'custom':'auto'}"]`).checked=true;
+ const img=document.getElementById('imageEditorPreview');
+ if(path){img.src=path;img.classList.add('is-visible');}else{img.classList.remove('is-visible');img.removeAttribute('src');}
+}
+document.getElementById('editImagePath').addEventListener('input',huToggleImageEditor);
+document.getElementById('localImagePreview').addEventListener('change',event=>{const file=event.target.files?.[0];if(!file)return;const img=document.getElementById('imageEditorPreview');img.src=URL.createObjectURL(file);img.classList.add('is-visible');});
+function huRefreshBackgroundChoice(){
+ const key=document.getElementById('editBackgroundKey').value;
+ document.querySelectorAll('#huBgChoices [data-bg]').forEach(b=>{b.classList.toggle('is-selected',b.dataset.bg===key);b.setAttribute('aria-pressed',String(b.dataset.bg===key));});
+ document.getElementById('huBackgroundPaths').hidden=key!=='custom';
+ document.querySelectorAll('#huAllHostImages [data-path]').forEach(b=>{const selected=key==='custom'&&b.dataset.path===document.getElementById('editBackgroundHost').value;b.classList.toggle('is-selected',selected);b.setAttribute('aria-pressed',String(selected));});
+ const selected=document.querySelector('#huBgChoices [data-bg="'+key+'"]');
+ document.getElementById('huBgCurrent').textContent='선택된 배경: '+(selected?.querySelector('strong')?.textContent|| (key==='custom'?'직접 선택 · '+document.getElementById('editBackgroundHost').value:'기존 저장된 배경'));
+}
+document.querySelectorAll('#huBgChoices [data-bg]').forEach(button=>button.addEventListener('click',()=>{document.getElementById('editBackgroundKey').value=button.dataset.bg;huRefreshBackgroundChoice();}));
+document.getElementById('editBackgroundKey').onchange=huRefreshBackgroundChoice;
+document.getElementById('editBackgroundHost').addEventListener('input',huRefreshBackgroundChoice);
 
 let galleryTarget='host',galleryRequest=0;
 const galleryDialog=document.getElementById('backgroundGallery');
@@ -1316,8 +1361,40 @@ async function openBackgroundGallery(target){
  }catch(error){if(request===galleryRequest)status.textContent='최신 목록을 불러오지 못해 기본 배경을 표시합니다. 잠시 후 다시 열거나 경로를 직접 입력하세요.';}
  finally{clearTimeout(timeout);}
 }
-document.getElementById('chooseHostBackground').onclick=()=>openBackgroundGallery('host');
-document.getElementById('chooseMobileBackground').onclick=()=>openBackgroundGallery('mobile');
+// Show every host-usable image from the repository directly in the editor.
+// Mobile variants are excluded; the separate problem illustration is not affected.
+let huInlineRequest=0;
+async function huLoadHostImages(){
+ const request=++huInlineRequest;
+ const grid=document.getElementById('huAllHostImages');
+ const status=document.getElementById('huInlineGalleryStatus');
+ status.textContent='GitHub images/ 폴더의 강사용 이미지를 불러오는 중…';
+ const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),10000);
+ try{
+  const response=await fetch('https://api.github.com/repos/hu-lap/hu-quiz/contents/images',{signal:controller.signal,cache:'no-store'});
+  if(!response.ok)throw new Error('GitHub API '+response.status);
+  const files=await response.json();if(!Array.isArray(files))throw new Error('이미지 목록 형식 오류');
+  if(request!==huInlineRequest)return;
+  const paths=files.filter(f=>f.type==='file'&&/\.(png|jpe?g|webp|gif|avif)$/i.test(f.name)&&!/_mobile\./i.test(f.name)).map(f=>'images/'+encodeURIComponent(f.name));
+  grid.replaceChildren();
+  for(const path of paths){
+   // Four standard backgrounds are already shown above; don't duplicate them.
+   if(['images/nuclear_dome_01.png','images/nuclear_dome_02.png','images/human_action_01.png','images/human_action_02.png'].includes(path))continue;
+   const button=document.createElement('button');button.type='button';button.className='hu-bg-tile hu-dynamic-bg';button.dataset.path=path;
+   const img=document.createElement('img');img.src=path;img.loading='lazy';img.alt='';
+   const title=document.createElement('strong');title.textContent=decodeURIComponent(path.split('/').pop());
+   button.append(img,title);
+   button.onclick=()=>{document.getElementById('editBackgroundKey').value='custom';document.getElementById('editBackgroundHost').value=path;document.getElementById('editBackgroundMobile').value=path;huRefreshBackgroundChoice();};
+   grid.append(button);
+  }
+  status.textContent=`강사용으로 사용할 수 있는 이미지 ${paths.length}개 (모바일 전용 제외). 그림을 누르면 선택됩니다.`;
+  huRefreshBackgroundChoice();
+ }catch(error){if(request===huInlineRequest)status.textContent='GitHub 이미지 목록을 불러오지 못했습니다. 위 기본 이미지 4개는 선택할 수 있습니다. ('+error.message+')';}
+ finally{clearTimeout(timeout);}
+}
+document.getElementById('huRefreshImages').onclick=huLoadHostImages;
+
+
 
 function openQuestionEditor(i){if(!canEditSets())return;editQuestionIndex=i;const q=i<0?{type:"choice",text:"",options:["","","",""],correct:"",explanation:"",durationSec:10,points:1000}:getSelectedSet().questions[i];
  document.getElementById("editorTitle").textContent=i<0?"문제 추가":"문제 수정";
@@ -1325,7 +1402,7 @@ function openQuestionEditor(i){if(!canEditSets())return;editQuestionIndex=i;cons
  document.getElementById("editOptions").value=(q.options||[]).join("\n");document.getElementById("editCorrect").value=Array.isArray(q.correct)?q.correct.join("\n"):(q.correct??"");
  document.getElementById("editExplanation").value=q.explanation||"";document.getElementById("editDuration").value=String(q.durationSec||10);document.getElementById("editPoints").value=String(q.points??1000);
  document.getElementById("editBackgroundKey").value=q.backgroundKey||"auto";document.getElementById("editBackgroundHost").value=q.backgroundHost||"";document.getElementById("editBackgroundMobile").value=q.backgroundMobile||"";document.getElementById("editBackgroundKey").onchange();
- renderEditorChoices(q.options||[],q.correct);document.querySelector(`input[name="editImageMode"][value="${q.imageMode||"auto"}"]`).checked=true;document.getElementById("editImagePath").value=q.imagePath||"";huToggleImageEditor();document.getElementById("questionPreview").style.display="none";editor.style.display="block";editor.scrollIntoView({behavior:"smooth",block:"nearest"});
+ void huLoadHostImages();renderEditorChoices(q.options||[],q.correct);document.getElementById("editImagePath").value=q.imagePath||"";huToggleImageEditor();document.getElementById("questionPreview").style.display="none";editor.style.display="block";editor.scrollIntoView({behavior:"smooth",block:"nearest"});
 }
 document.getElementById("addQuestionBtn").onclick=()=>{if(!getSelectedSet()){alert("먼저 문제 세트를 만들어 주세요.");return;}openQuestionEditor(-1);};
 document.getElementById("cancelQuestionBtn").onclick=()=>editor.style.display="none";
@@ -1346,7 +1423,7 @@ function collectEditorQuestion(){
  if(type==="order"&&options.length!==4)throw Error("순서형 문제는 4개 선택지를 입력하세요.");
  if(type!=="poll"&&(type==="order"?(correct.length!==options.length||correct.some(x=>!options.includes(x))||new Set(correct).size!==options.length):type==="multi"?(!correct.length||correct.some(x=>!options.includes(x))||new Set(correct).size!==correct.length):!options.includes(correct)))throw Error("정답을 올바르게 지정하세요. 순서형은 1~4번을 중복 없이 한 번씩 선택해야 합니다.");
  const points=type==="poll"?0:Number(document.getElementById("editPoints").value);
- return {type,text,options,correct,backgroundKey:document.getElementById("editBackgroundKey").value,backgroundHost:document.getElementById("editBackgroundHost").value.trim(),backgroundMobile:document.getElementById("editBackgroundMobile").value.trim(),imageMode:document.querySelector('input[name="editImageMode"]:checked').value,imagePath:document.getElementById("editImagePath").value.trim(),explanation:document.getElementById("editExplanation").value.trim(),durationSec:Number(document.getElementById("editDuration").value),points};
+ return {type,text,options,correct,backgroundKey:document.getElementById("editBackgroundKey").value,backgroundHost:document.getElementById("editBackgroundHost").value.trim(),backgroundMobile:document.getElementById("editBackgroundMobile").value.trim(),imageMode:document.getElementById("editImagePath").value.trim()?"custom":"auto",imagePath:document.getElementById("editImagePath").value.trim(),explanation:document.getElementById("editExplanation").value.trim(),durationSec:Number(document.getElementById("editDuration").value),points};
 }
 document.getElementById("saveQuestionBtn").onclick=async()=>{if(!canEditSets())return;let q;try{q=collectEditorQuestion();}catch(e){alert(e.message);return;}
  const items=[...(getSelectedSet().questions||[])];q.enabled=true;
