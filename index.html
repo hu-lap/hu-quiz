@@ -382,6 +382,36 @@ body.quiz-presenting #options .option.correct-choice{outline:4px solid #219653;o
 #joinNotice{max-width:430px;padding:14px 18px;border-radius:14px;background:#ffffffeb;color:#184963;line-height:1.6;margin:0 0 16px;text-align:center}
 #joinNotice:empty{display:none}.main-button:disabled{opacity:.55;cursor:default;box-shadow:none!important}
 button:focus-visible{outline:3px solid #145e95;outline-offset:4px}
+
+/* 2026-10-25: mobile layout and result background; no changes to scoring/Firebase */
+#resultScreen{position:relative;isolation:isolate;background:#173b55!important;overflow:hidden}
+#resultScreen::before{content:"";position:absolute;inset:-16px;z-index:-1;background-image:linear-gradient(145deg,rgba(12,47,76,.52),rgba(24,89,120,.30)),var(--hu-result-scene,linear-gradient(#e9f0f1,#e9f0f1));background-position:center;background-size:cover;filter:blur(9px)}
+#resultScreen>.card{position:relative;background:rgba(255,255,255,.90)}
+@media(max-width:700px){
+  /* Keep the timer next to the question number, rather than taking a full row. */
+  #quizScreen[style*="display: grid"]{display:grid!important;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto auto minmax(0,1fr) auto auto;align-content:start;column-gap:8px;row-gap:8px;padding:10px 12px 16px;min-height:100dvh}
+  #quizScreen #questionNumber{grid-column:1;grid-row:1;align-self:center;margin:0;min-width:0}
+  #quizScreen #timerWrap{grid-column:2;grid-row:1;align-self:start;width:auto;max-width:none;margin:0!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important}
+  #quizScreen .hu-timer-copy{display:none}
+  #quizScreen .hu-clock{width:53px;height:53px;padding:5px}
+  #quizScreen .hu-clock .timer-value{font-size:13px!important}
+  #quizScreen #timeOverMessage{grid-column:1/-1;grid-row:5;margin:0}
+  #quizScreen #questionText{grid-column:1/-1;grid-row:2;margin:0 auto!important;padding:12px 13px!important;font-size:clamp(19px,5vw,25px)}
+  #quizScreen #studentPicture{grid-column:1/-1;grid-row:3;margin:0 auto;max-height:26dvh}
+  #quizScreen #answers{grid-column:1/-1;grid-row:4;align-self:start;width:100%;margin:0 auto}
+  #quizScreen #orderInfo{grid-column:1/-1;grid-row:5}
+  #quizScreen #orderControls{grid-column:1/-1;grid-row:6}
+  /* Warm-up 1 and 2: keep the background vivid, with answer buttons at bottom. */
+  #quizScreen.hu-warmup-pair{background-image:var(--hu-scene)!important;background-position:center;background-size:cover}
+  #quizScreen.hu-warmup-pair #answers{align-self:end;margin-top:auto}
+  #quizScreen.hu-warmup-pair #answers .answer{min-height:86px}
+  /* Warm-up 3: options 1/2 at their original upper position, 3/4 at bottom. */
+  #quizScreen.hu-warmup-four #answers{height:100%;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;grid-template-rows:auto minmax(12px,1fr) auto;align-self:stretch;align-content:stretch}
+  #quizScreen.hu-warmup-four #answers .answer:nth-child(1),#quizScreen.hu-warmup-four #answers .answer:nth-child(2){grid-row:1}
+  #quizScreen.hu-warmup-four #answers .answer:nth-child(3),#quizScreen.hu-warmup-four #answers .answer:nth-child(4){grid-row:3}
+  #quizScreen.hu-warmup-four #answers .answer{min-height:80px}
+}
+
 </style>
 </head>
 
@@ -841,7 +871,7 @@ function showScreen(id) {
 
   if (id === "quizScreen") {
 
-    target.style.display = "block";
+    target.style.display = "grid";
 
   } else {
 
@@ -1167,6 +1197,13 @@ function displayQuestion(questionIndex, state) {
     questions[currentQuestion];
   huApplyBackground(q,currentQuestion,"quizScreen","studentPicture");
    document.getElementById("quizScreen").classList.toggle("hu-warmup",Number(q.points)===0);
+  // Only the three fixed warm-up backgrounds receive special mobile button layouts.
+  const sceneKey=String(q.backgroundKey||'');
+  const isWarmup=Number(q.points)===0;
+  const warmupPair=isWarmup && (sceneKey==='warmup_01'||sceneKey==='warmup_02');
+  const warmupFour=isWarmup && sceneKey==='warmup_03';
+  document.getElementById("quizScreen").classList.toggle("hu-warmup-pair",warmupPair);
+  document.getElementById("quizScreen").classList.toggle("hu-warmup-four",warmupFour);
 
   document.getElementById("questionNumber")
     .textContent =
@@ -1625,6 +1662,10 @@ function showResult() {
     if(correct)cell.classList.add('correct-choice');choices.append(cell);
   });
   choices.hidden=q.type==='poll';
+  // Keep the just-finished question's background, softly blurred behind results.
+  const resultScene = document.getElementById("quizScreen").style.getPropertyValue("--hu-scene").trim();
+  const fallbackPath = huResolved.get(huSceneToken(q,currentQuestion));
+  document.getElementById("resultScreen").style.setProperty("--hu-result-scene",resultScene || (fallbackPath ? 'url('+JSON.stringify(fallbackPath)+')' : 'linear-gradient(#e9f0f1,#e9f0f1)'));
   showScreen("resultScreen");
 
 }
