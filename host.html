@@ -648,6 +648,23 @@ button:focus-visible{outline:3px solid #145e95;outline-offset:4px}
 .hu-bg-current{font-size:13px;color:#29516d;margin:8px 0 12px}
 .hu-illustration-editor{border-top:1px solid #d4e0e8;padding-top:16px;margin-top:15px}
 .hu-illustration-editor input[type=file]{margin-top:8px;max-width:100%}
+
+/* 문제관리 편집 화면 가독성 향상 — 썸네일 크기 유지 */
+#setEditor{font-size:17px;line-height:1.5}
+#setEditor h3{font-size:25px}
+#setEditor label{font-size:17px;font-weight:750}
+#setEditor .image-help,#setEditor .set-hint,#setEditor .hu-bg-current{font-size:15px;line-height:1.6}
+#setEditor button:not(.hu-bg-tile){font-size:16px;min-height:43px}
+#setEditor input:not([type=radio]):not([type=checkbox]):not([type=file]),#setEditor textarea,#setEditor select{font-size:17px;min-height:43px}
+#setEditor input[type=file]{font-size:15px}
+#setEditor .hu-bg-tile strong{font-size:15px;line-height:1.35}
+#setEditor .hu-bg-symbol{font-size:39px}
+#setEditor .choice-text{font-size:17px}
+#setEditor .choice-correct{transform:scale(1.2);transform-origin:center}
+#setEditor .hu-illustration-editor{font-size:16px}
+#setEditor .hu-picture{max-height:27vh}
+#setEditor #imagePathStatus{font-size:15px;font-weight:650;line-height:1.5;margin:6px 0 10px}
+
 </style>
 </head>
 
@@ -816,7 +833,7 @@ button:focus-visible{outline:3px solid #145e95;outline-offset:4px}
         <div class="hu-bg-current" id="huBgCurrent" aria-live="polite"></div>
         <select id="editBackgroundKey" hidden aria-label="문제 배경 유형"><option value="auto">자동 순환</option><option value="none">기본 배경</option><option value="nuclear_dome_01">원전 낮</option><option value="nuclear_dome_02">원전 저녁</option><option value="human_action_01">작업 전 확인</option><option value="human_action_02">설비 점검</option><option value="warmup_01">몸풀기 1</option><option value="warmup_02">몸풀기 2</option><option value="warmup_03">몸풀기 3</option><option value="custom">직접 선택한 그림</option></select>
         <div id="huBackgroundPaths" hidden><label>선택한 배경 파일</label><input id="editBackgroundHost" class="image-path-input" placeholder="images/배경.png"><input id="editBackgroundMobile" type="hidden"></div>
-        <div class="hu-illustration-editor"><label for="editImagePath">문제 안에 표시할 그림 (선택 사항 · 배경과 별개)</label><input class="image-path-input" id="editImagePath" placeholder="예: images/animals.png (없으면 빈칸)"><img id="imageEditorPreview" class="hu-picture" alt="문제 그림 미리보기"><input id="localImagePreview" type="file" accept="image/*"><p class="image-help">문제 그림은 GitHub images 폴더에 업로드한 뒤 경로를 입력하세요. 파일 선택은 미리보기만 가능합니다.</p></div>
+        <div class="hu-illustration-editor"><label for="editImagePath">문제 안에 표시할 그림 (선택 사항 · 배경과 별개)</label><input class="image-path-input" id="editImagePath" placeholder="예: images/animals.png (없으면 빈칸)"><img id="imageEditorPreview" class="hu-picture" alt="문제 그림 미리보기"><input id="localImagePreview" type="file" accept="image/*"><p id="imagePathStatus" role="status">파일을 선택해도 자동 업로드되지 않습니다.</p><p class="image-help">교육생에게 그림을 보이려면 GitHub의 images 폴더에 그림 파일을 올린 뒤 위 칸에 정확한 경로를 입력하고 문제를 저장하세요. 아래 파일 선택은 강사용 임시 미리보기입니다.</p></div>
         <div class="image-mode-group" hidden><label><input type="radio" name="editImageMode" value="auto" checked>자동</label><label><input type="radio" name="editImageMode" value="custom">그림</label><label><input type="radio" name="editImageMode" value="none">없음</label></div>
         <div id="customImageSettings" hidden></div>
       </div>
@@ -1328,10 +1345,26 @@ function huToggleImageEditor(){
  const path=document.getElementById('editImagePath').value.trim();
  document.querySelector(`input[name="editImageMode"][value="${path?'custom':'auto'}"]`).checked=true;
  const img=document.getElementById('imageEditorPreview');
- if(path){img.src=path;img.classList.add('is-visible');}else{img.classList.remove('is-visible');img.removeAttribute('src');}
+ const status=document.getElementById('imagePathStatus');
+ if(path){
+   img.onload=()=>{status.textContent='✓ 그림 경로 확인됨: '+path;status.style.color='#237044';};
+   img.onerror=()=>{img.classList.remove('is-visible');status.textContent='⚠ 그림을 찾을 수 없습니다. GitHub images 폴더의 파일명과 확장자, 대소문자를 확인하세요: '+path;status.style.color='#aa4b30';};
+   img.src=path;img.classList.add('is-visible');
+   status.textContent='그림 경로 확인 중: '+path;status.style.color='#365b76';
+ }else{
+   img.classList.remove('is-visible');img.removeAttribute('src');
+   status.textContent='파일을 선택해도 자동 업로드되지 않습니다. GitHub에 올린 후 위 경로를 입력하세요.';status.style.color='#aa4b30';
+ }
 }
 document.getElementById('editImagePath').addEventListener('input',huToggleImageEditor);
-document.getElementById('localImagePreview').addEventListener('change',event=>{const file=event.target.files?.[0];if(!file)return;const img=document.getElementById('imageEditorPreview');img.src=URL.createObjectURL(file);img.classList.add('is-visible');});
+document.getElementById('localImagePreview').addEventListener('change',event=>{
+ const file=event.target.files?.[0];if(!file)return;
+ const img=document.getElementById('imageEditorPreview');
+ img.onload=null;img.onerror=null;img.src=URL.createObjectURL(file);img.classList.add('is-visible');
+ const status=document.getElementById('imagePathStatus');
+ status.textContent='⚠ '+file.name+'은 현재 이 컴퓨터에서만 미리 보입니다. GitHub images 폴더에 업로드한 후 images/'+file.name+'을 위 경로에 입력해야 교육생에게 표시됩니다.';
+ status.style.color='#aa4b30';
+});
 function huRefreshBackgroundChoice(){
  const key=document.getElementById('editBackgroundKey').value;
  document.querySelectorAll('#huBgChoices [data-bg]').forEach(b=>{b.classList.toggle('is-selected',b.dataset.bg===key);b.setAttribute('aria-pressed',String(b.dataset.bg===key));});
