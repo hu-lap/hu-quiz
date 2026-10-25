@@ -665,6 +665,21 @@ button:focus-visible{outline:3px solid #145e95;outline-offset:4px}
 #setEditor .hu-picture{max-height:27vh}
 #setEditor #imagePathStatus{font-size:15px;font-weight:650;line-height:1.5;margin:6px 0 10px}
 
+
+/* 강사용 1~3위 시상대 */
+.ranking{max-width:920px;text-align:center;background:linear-gradient(160deg,#101f39,#263c65);color:white;box-shadow:0 12px 34px #14233c35}
+.ranking h2{font-size:clamp(26px,3vw,42px);margin:4px 0 22px}
+.hu-podium{display:flex;align-items:flex-end;justify-content:center;gap:12px;min-height:330px;margin:10px auto 22px}
+.hu-podium-place{display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch;width:30%;max-width:250px;min-width:0}
+.hu-podium-name{font-size:clamp(15px,2vw,25px);font-weight:800;overflow-wrap:anywhere;padding:10px 2px}
+.hu-podium-score{font-size:clamp(15px,1.8vw,23px);font-weight:700;color:#fbe69d;padding-bottom:12px}
+.hu-podium-step{display:flex;align-items:center;justify-content:center;border-radius:14px 14px 0 0;font-weight:900;font-size:clamp(30px,5vw,65px);box-shadow:inset 0 5px 12px #ffffff3b}
+.hu-podium-place.first .hu-podium-step{height:170px;background:linear-gradient(#ffdf6a,#b87e17);color:#50320b}
+.hu-podium-place.second .hu-podium-step{height:125px;background:linear-gradient(#f0f3f7,#8c9bad);color:#334052}
+.hu-podium-place.third .hu-podium-step{height:95px;background:linear-gradient(#e8ad7e,#a8663f);color:#522b16}
+.hu-podium-place.empty{opacity:.4}
+.hu-podium-rest{font-size:18px;color:#dce7fb;margin:12px}
+@media(max-width:700px){.hu-podium{min-height:260px;gap:5px}.hu-podium-place.first .hu-podium-step{height:120px}.hu-podium-place.second .hu-podium-step{height:90px}.hu-podium-place.third .hu-podium-step{height:70px}}
 </style>
 </head>
 
@@ -810,6 +825,12 @@ button:focus-visible{outline:3px solid #145e95;outline-offset:4px}
      <button class="secondary" id="exportSetBtn" type="button">📤 선택 세트 JSON 다운로드</button>
      <button class="secondary" id="exportAllSetsBtn" type="button">📦 전체 세트 JSON 백업</button>
      <button class="secondary" id="importSetBtn" type="button">📥 JSON 세트 일괄 가져오기</button><input id="importSetFile" type="file" accept=".json,application/json" style="display:none">
+    <div class="set-row" style="margin-top:12px;flex-wrap:wrap">
+      <button class="secondary" id="exportExcelBtn" type="button">📊 선택 세트 엑셀 다운로드</button>
+      <button class="secondary" id="importExcelBtn" type="button">📥 엑셀 문제 가져오기</button>
+      <input id="importExcelFile" type="file" accept=".xls,application/vnd.ms-excel,.xml,text/xml" style="display:none">
+    </div>
+    <p class="set-hint">엑셀에서 문제를 수정한 뒤 .xls 형식으로 저장해 다시 가져올 수 있습니다. 기존 문제는 덮어쓰지 않고 새 세트로 등록됩니다. 복수정답은 보기 번호를 쉼표로, 순서 선택은 번호 순서대로 입력하세요.</p>
     <div id="setEditor" class="set-editor">
       <h3 id="editorTitle">문제 편집</h3>
       <label>문제 유형</label><select id="editType"><option value="choice">객관식</option><option value="ox">OX</option><option value="order">순서 선택</option><option value="multi">복수정답</option><option value="poll">투표 (정답 없음)</option></select>
@@ -967,7 +988,7 @@ button:focus-visible{outline:3px solid #145e95;outline-offset:4px}
       class="secondary"
       onclick="showRanking()"
       style="display:none;">
-      이번 문제 순위 공개
+      이번 문제 시상대 공개
     </button>
 
     <button
@@ -1536,6 +1557,109 @@ document.getElementById("exportAllSetsBtn").onclick=()=>{
  if(!Object.keys(quizSets).length){alert("백업할 문제 세트가 없습니다.");return;}
  huDownloadQuizJson({format:"HU-Quiz-all-sets-backup",version:1,exportedAt:new Date().toISOString(),quizSets},`HU_Quiz_전체문제백업_${huBackupDate()}.json`);
 };
+
+// Excel 2003 XML Spreadsheet (.xls): external CDN 없이 엑셀에서 열고 다시 업로드 가능
+const HU_EXCEL_COLUMNS=[
+ ["세트명","setName"],["문제번호","number"],["유형","type"],["문제","text"],
+ ["보기1","o1"],["보기2","o2"],["보기3","o3"],["보기4","o4"],
+ ["보기5","o5"],["보기6","o6"],["보기7","o7"],["보기8","o8"],
+ ["정답번호","correctNumbers"],["해설","explanation"],["제한시간(초)","durationSec"],
+ ["점수","points"],["사용","enabled"],["이미지모드","imageMode"],
+ ["배경키","backgroundKey"],["강사배경","backgroundHost"],
+ ["모바일배경","backgroundMobile"],["문제이미지","imagePath"],
+ ["원본JSON(수정불필요)","rawJson"]
+];
+function huExcelEscape(v){return String(v??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&apos;");}
+function huExcelType(t){return ({choice:"객관식",ox:"OX",order:"순서 선택",multi:"복수정답",poll:"투표"})[t]||t;}
+function huExcelCode(t){return ({객관식:"choice",OX:"ox","순서 선택":"order",복수정답:"multi",투표:"poll"})[String(t).trim()]||String(t).trim();}
+function huExcelAnswers(q){
+ if(q.type==="poll"||q.correct==null)return "";
+ const vals=Array.isArray(q.correct)?q.correct:[q.correct];
+ return vals.map(v=>q.options.indexOf(v)+1).filter(n=>n>0).join(",");
+}
+function huExcelDownload(){
+ if(!adminAuthenticated||setLoading){alert("관리자 로그인 및 세트 불러오기를 확인하세요.");return;}
+ const d=getSelectedSet();if(!d){alert("문제 세트를 선택하세요.");return;}
+ const rows=[HU_EXCEL_COLUMNS.map(c=>c[0])];
+ (d.questions||[]).forEach((q,i)=>{
+  const row={setName:d.name||"",number:i+1,type:huExcelType(q.type),text:q.text||"",
+   correctNumbers:huExcelAnswers(q),explanation:q.explanation||"",durationSec:q.durationSec??20,
+   points:q.points??1000,enabled:q.enabled===false?"N":"Y",imageMode:q.imageMode||"auto",
+   backgroundKey:q.backgroundKey||"auto",backgroundHost:q.backgroundHost||"",
+   backgroundMobile:q.backgroundMobile||"",imagePath:q.imagePath||"",rawJson:JSON.stringify(q)};
+  for(let n=1;n<=8;n++)row["o"+n]=(q.options||[])[n-1]||"";
+  rows.push(HU_EXCEL_COLUMNS.map(c=>row[c[1]]??""));
+ });
+ const xml='<?xml version="1.0" encoding="UTF-8"?>'+
+ '<?mso-application progid="Excel.Sheet"?>'+
+ '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">'+
+ '<Worksheet ss:Name="문제목록"><Table>'+rows.map(r=>'<Row>'+r.map(v=>'<Cell><Data ss:Type="String">'+huExcelEscape(v)+'</Data></Cell>').join('')+'</Row>').join('')+'</Table></Worksheet></Workbook>';
+ const blob=new Blob(["\ufeff",xml],{type:"application/vnd.ms-excel;charset=utf-8"});
+ const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;
+ a.download=`HU_Quiz_${huSafeFileName(d.name)}_${huBackupDate()}.xls`;
+ document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
+}
+document.getElementById("exportExcelBtn").onclick=huExcelDownload;
+document.getElementById("importExcelBtn").onclick=()=>{
+ if(!canEditSets())return;
+ document.getElementById("importExcelFile").click();
+};
+document.getElementById("importExcelFile").onchange=async e=>{
+ const input=e.target,file=input.files?.[0];if(!file)return;
+ try{
+  const content=await file.text(),doc=new DOMParser().parseFromString(content,"application/xml");
+  if(doc.querySelector("parsererror"))throw Error("엑셀 XML 형식을 읽을 수 없습니다. 내려받은 .xls 파일을 사용하세요.");
+  const rows=Array.from(doc.getElementsByTagNameNS("urn:schemas-microsoft-com:office:spreadsheet","Row"));
+  if(rows.length<2)throw Error("문제 데이터가 없습니다.");
+  const parseRow=row=>{
+   const cells=Array.from(row.getElementsByTagNameNS("urn:schemas-microsoft-com:office:spreadsheet","Cell"));
+   const arr=[];let next=0;
+   for(const cell of cells){
+    const idx=cell.getAttributeNS("urn:schemas-microsoft-com:office:spreadsheet","Index");
+    if(idx)next=Number(idx)-1;
+    const data=cell.getElementsByTagNameNS("urn:schemas-microsoft-com:office:spreadsheet","Data")[0];
+    arr[next++]=data?.textContent??"";
+   }
+   return arr;
+  };
+  const head=parseRow(rows[0]),map=Object.fromEntries(HU_EXCEL_COLUMNS.map(([label,key])=>[key,head.indexOf(label)]));
+  if(["setName","type","text","o1","o2","correctNumbers"].some(k=>map[k]<0))throw Error("엑셀 열 제목이 맞지 않습니다.");
+  const value=(row,key)=>map[key]>=0?String(row[map[key]]??"").trim():"";
+  const rawRows=rows.slice(1).map(parseRow).filter(row=>row.some(v=>String(v??"").trim()));
+  if(!rawRows.length||rawRows.length>300)throw Error("문제는 1~300개까지 가져올 수 있습니다.");
+  const name=value(rawRows[0],"setName")||"엑셀 가져온 문제";
+  const questions=rawRows.map((r,i)=>{
+   let original={};
+   try{const raw=value(r,"rawJson");if(raw)original=JSON.parse(raw);}catch(_){}
+   const type=huExcelCode(value(r,"type"));
+   if(!["choice","ox","order","multi","poll"].includes(type))throw Error(`${i+1}번 문제 유형 오류`);
+   const options=Array.from({length:8},(_,n)=>value(r,"o"+(n+1))).filter(Boolean);
+   if(options.length<2||options.length>8||new Set(options).size!==options.length)throw Error(`${i+1}번 보기 오류`);
+   const answer=value(r,"correctNumbers");
+   const numbers=answer?answer.split(/[,，;\s]+/).filter(Boolean).map(Number):[];
+   if(numbers.some(n=>!Number.isInteger(n)||n<1||n>options.length)||new Set(numbers).size!==numbers.length)throw Error(`${i+1}번 정답번호 오류`);
+   if(type==="poll"&&numbers.length)throw Error(`${i+1}번 투표에는 정답이 없어야 합니다.`);
+   if(type==="order"&&numbers.length!==options.length)throw Error(`${i+1}번 순서 선택은 모든 보기의 순서를 입력하세요.`);
+   if(type==="multi"&&!numbers.length)throw Error(`${i+1}번 복수정답이 비어 있습니다.`);
+   if(["choice","ox"].includes(type)&&numbers.length!==1)throw Error(`${i+1}번 정답은 하나여야 합니다.`);
+   const points=Number(value(r,"points")||1000),durationSec=Number(value(r,"durationSec")||20);
+   if(![0,1000,2000].includes(points)||![10,20].includes(durationSec)||type==="poll"&&points!==0)throw Error(`${i+1}번 점수/시간 오류`);
+   const text=value(r,"text");if(!text)throw Error(`${i+1}번 문제 내용이 없습니다.`);
+   const correct=type==="poll"?null:["order","multi"].includes(type)?numbers.map(n=>options[n-1]):options[numbers[0]-1];
+   return {...original,type,text,options,correct,explanation:value(r,"explanation"),
+    durationSec,points,enabled:value(r,"enabled").toUpperCase()!=="N",
+    imageMode:value(r,"imageMode")||"auto",backgroundKey:value(r,"backgroundKey")||"auto",
+    backgroundHost:value(r,"backgroundHost"),backgroundMobile:value(r,"backgroundMobile"),
+    imagePath:value(r,"imagePath")};
+  });
+  if(!confirm(`'${name}' ${questions.length}개 문제를 새 세트로 등록할까요?\n기존 세트는 변경되지 않습니다.`))return;
+  const newRef=push(ref(database,"quizSets"));
+  await set(newRef,{name,questions});selectedSetId=newRef.key;updateSetUI();
+  alert(`${questions.length}문제 가져오기 완료. 새 세트로 등록되었습니다.`);
+ }catch(err){alert("엑셀 가져오기 실패: "+err.message);console.error(err);}
+ finally{input.value="";}
+};
+
 // 세트 전체를 새로 생성하며 기존 세트는 변경하지 않습니다.
 document.getElementById("importSetBtn").onclick=()=>{if(!canEditSets())return;document.getElementById("importSetFile").click();};
 document.getElementById("importSetFile").onchange=async e=>{
@@ -2227,6 +2351,20 @@ function renderAnswerStatistics(q) {
    순위 공개
 ============================== */
 
+function huRenderPodium(list,ranked){
+ list.replaceChildren();
+ if(!ranked.length){list.textContent="정답자가 없습니다.";return;}
+ const podium=document.createElement("div");podium.className="hu-podium";
+ for(const [index,cls,medal] of [[1,"second","🥈"],[0,"first","🥇"],[2,"third","🥉"]]){
+  const entry=ranked[index],place=document.createElement("div");place.className="hu-podium-place "+cls+(!entry?" empty":"");
+  const name=document.createElement("div");name.className="hu-podium-name";name.textContent=entry?.nickname||"—";
+  const score=document.createElement("div");score.className="hu-podium-score";score.textContent=entry?Number(entry.score||0).toLocaleString()+"점":" ";
+  const step=document.createElement("div");step.className="hu-podium-step";step.textContent=medal;
+  place.append(name,score,step);podium.appendChild(place);
+ }
+ list.appendChild(podium);
+ if(ranked.length>3){const rest=document.createElement("div");rest.className="hu-podium-rest";rest.textContent=ranked.slice(3,6).map((r,i)=>`${i+4}위 ${r.nickname} ${Number(r.score||0).toLocaleString()}점`).join("   ·   ");list.appendChild(rest);}
+}
 window.showRanking = async function() {
   if (!adminAuthenticated) { alert("관리자 로그인이 필요합니다."); return; }
 
@@ -2282,39 +2420,7 @@ window.showRanking = async function() {
       "🏆 HU Quiz 최종 결과";
 
 
-    if (sorted.length === 0) {
-
-      list.innerHTML =
-        "<div class='rank-item'>점수 데이터가 없습니다.</div>";
-
-    } else {
-
-      sorted.slice(0,3)
-        .forEach((item,index) => {
-
-          const div =
-            document.createElement("div");
-
-          div.className =
-            "rank-item top3";
-
-          const medal =
-            index === 0 ? "🥇" :
-            index === 1 ? "🥈" : "🥉";
-
-          div.textContent =
-            medal +
-            " " +
-            item.nickname +
-            "  " +
-            item.score +
-            "점";
-
-          list.appendChild(div);
-
-        });
-
-    }
+    huRenderPodium(list,sorted);
 
     document.getElementById("rankCloseButton")
       .style.display =
@@ -2358,44 +2464,7 @@ window.showRanking = async function() {
       "⚡ 이번 문제 순위";
 
 
-    if (rows.length === 0) {
-
-      list.innerHTML =
-        "<div class='rank-item'>정답자가 없습니다.</div>";
-
-    } else {
-
-      rows.slice(0,6)
-        .forEach((item,index) => {
-
-          const div =
-            document.createElement("div");
-
-          div.className =
-            index < 3
-              ? "rank-item top3"
-              : "rank-item lower";
-
-          const prefix =
-            index === 0 ? "🥇" :
-            index === 1 ? "🥈" :
-            index === 2 ? "🥉" :
-            (index + 1) + "위";
-
-          div.textContent =
-            prefix +
-            " " +
-            item.nickname +
-            "  " +
-            item.score +
-            "점";
-
-          list.appendChild(div);
-
-        });
-
-    }
-
+    huRenderPodium(list,rows);
 
     document.getElementById("rankCloseButton")
       .style.display =
