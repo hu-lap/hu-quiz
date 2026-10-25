@@ -11,7 +11,7 @@
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Pretendard Variable",Pretendard,"Noto Sans KR","Malgun Gothic",system-ui,sans-serif}
 h1{font-size:1.25rem;margin:0}
 label{display:block;font-size:.875rem;color:var(--sub);margin-bottom:12px}
-input,textarea{display:block;width:100%;margin-top:4px;padding:10px 12px;font:inherit;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:6px}
+input,textarea,select{display:block;width:100%;margin-top:4px;padding:10px 12px;font:inherit;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:6px}
 input:focus,textarea:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 textarea{resize:vertical;min-height:64px}
 button{font:inherit;cursor:pointer;border-radius:6px;padding:10px 16px;border:1px solid var(--line);background:#fff;color:var(--ink)}
@@ -34,7 +34,7 @@ aside button.primary{width:100%;margin-bottom:12px}
 .q{border:1px solid var(--line);border-radius:8px;padding:16px;margin:16px 0;background:#fafbfc}
 .qh{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
 .opt{display:flex;align-items:center;gap:10px;margin-top:8px}
-.opt input[type=radio]{width:20px;height:20px;margin:0;flex:none}
+.opt input[type=radio],.opt input[type=checkbox]{width:20px;height:20px;margin:0;flex:none}
 .opt input[type=text]{margin:0}
 .nums{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
 .nums label{margin:0}
@@ -43,6 +43,8 @@ aside button.primary{width:100%;margin-bottom:12px}
 .bar .grow{flex:1}
 #msg{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;border-radius:8px;font-size:.9375rem;max-width:90vw}
 #msg.bad{background:var(--danger)}
+aside>button{width:100%;margin-bottom:12px}
+.no{width:20px;text-align:center;color:var(--sub);flex:none}
 @media(max-width:800px){.wrap{grid-template-columns:1fr}}
 </style>
 </head>
@@ -62,6 +64,8 @@ aside button.primary{width:100%;margin-bottom:12px}
   <div class="wrap">
     <aside>
       <button class="primary" data-act="new">새 문제 세트</button>
+      <button data-act="import">JSON 파일 가져오기</button>
+      <input id="imp" type="file" accept=".json,application/json" hidden>
       <div id="list"></div>
     </aside>
     <section id="editor" class="card"></section>
@@ -79,7 +83,7 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 let sets = {}, cur = null, unsub = null, timer;
 
-const blankQ = () => ({ text: "", options: ["", "", "", ""], answer: 0, time: 20, points: 1000 });
+
 
 function toast(text, bad) {
   const m = $("#msg");
@@ -127,23 +131,38 @@ function renderList() {
     : `<p class="empty">아직 문제 세트가 없어요. 새 문제 세트를 만들어 보세요.</p>`;
 }
 
+const NSLOT = { choice: 4, ox: 2, multi: 6, order: 6, poll: 6 };
+const TYPES = { choice: "객관식 (2~4지선다)", ox: "OX", multi: "복수 선택", order: "순서 누르기", poll: "투표 (정답 없음)" };
+const pad = q => { const n = NSLOT[q.type]; q.opts = q.opts.slice(0, n); while (q.opts.length < n) q.opts.push(""); if (q.type === "ox") q.opts = ["O", "X"]; return q; };
+const mk = (type = "choice") => pad({ type, text: "", opts: [], ai: 0, ais: [], exp: "", time: 20, pts: type === "poll" ? 0 : 1000 });
+const fromDb = q => {
+  const t = TYPES[q.type] ? q.type : "choice", o = [...(q.options || [])];
+  const m = { type: t, text: q.text || "", opts: t === "order" ? [...(q.correct || o)] : o, ai: 0, ais: [], exp: q.explanation || "", time: q.durationSec || 20, pts: q.points ?? 1000 };
+  if (t === "choice" || t === "ox") m.ai = Math.max(0, o.indexOf(q.correct));
+  if (t === "multi") m.ais = (q.correct || []).map(c => o.indexOf(c)).filter(i => i >= 0);
+  if (t === "poll") m.pts = 0;
+  return pad(m);
+};
+
 function openSet(id) {
-  if (!id) { cur = { id: null, title: "", description: "", questions: [blankQ()] }; }
-  else {
-    const s = sets[id];
-    cur = {
-      id, title: s.title || "", description: s.description || "",
-      questions: Object.values(s.questions || {}).map(q => ({
-        text: q.text || "",
-        options: [0, 1, 2, 3].map(i => (q.options && q.options[i]) || ""),
-        answer: q.answer ?? 0, time: q.time ?? 20, points: q.points ?? 1000
-      }))
-    };
-  }
+  cur = id
+    ? { id, title: sets[id].title || "", description: sets[id].description || "", questions: Object.values(sets[id].questions || {}).map(fromDb) }
+    : { id: null, title: "", description: "", questions: [mk()] };
   renderList(); renderEditor();
 }
 
 /* ---------- 편집 ---------- */
+function optHtml(q, i) {
+  const T = q.type;
+  if (T === "order") return q.opts.map((o, k) => `<div class="opt"><span class="no">${k + 1}</span><input type="text" data-f="o" data-k="${k}" value="${esc(o)}" maxlength="80" placeholder="${k + 1}번째로 누를 보기"></div>`).join("")
+    + `<p class="hint">정답 순서대로 입력하세요. 참가자 화면에는 섞여서 나와요. 2개 이상 입력하면 돼요.</p>`;
+  return q.opts.map((o, k) => {
+    const pick = T === "multi" ? `<input type="checkbox" data-f="m" data-k="${k}" ${q.ais.includes(k) ? "checked" : ""} aria-label="보기 ${k + 1} 정답">`
+      : T === "poll" ? "" : `<input type="radio" name="a${i}" data-f="a" value="${k}" ${q.ai === k ? "checked" : ""} aria-label="보기 ${k + 1} 정답">`;
+    return `<div class="opt">${pick}<input type="text" data-f="o" data-k="${k}" value="${esc(o)}" maxlength="80" placeholder="보기 ${k + 1}" ${T === "ox" ? "readonly" : ""}></div>`;
+  }).join("") + `<p class="hint">${T === "multi" ? "정답인 보기를 모두 체크하세요. 참가자에게 정답 개수가 안내돼요." : T === "poll" ? "정답 없이 선택 결과만 보여줘요." : T === "ox" ? "정답을 선택하세요." : "정답인 보기를 선택하세요. 보기는 2개 이상 입력하면 돼요."}</p>`;
+}
+
 function renderEditor() {
   const ed = $("#editor");
   if (!cur) { ed.innerHTML = `<p class="empty">왼쪽에서 문제 세트를 고르거나 새로 만드세요.</p>`; return; }
@@ -154,16 +173,13 @@ function renderEditor() {
       <div class="q" data-i="${i}">
         <div class="qh"><strong>문제 ${i + 1}</strong>
           <button class="ghost" data-act="rm" data-i="${i}" ${cur.questions.length < 2 ? "disabled" : ""}>삭제</button></div>
+        <label>유형<select data-f="type">${Object.entries(TYPES).map(([k, v]) => `<option value="${k}" ${q.type === k ? "selected" : ""}>${v}</option>`).join("")}</select></label>
         <label>문제 내용<textarea data-f="text">${esc(q.text)}</textarea></label>
-        ${q.options.map((o, k) => `
-          <div class="opt">
-            <input type="radio" name="a${i}" data-f="a" value="${k}" ${q.answer === k ? "checked" : ""} aria-label="보기 ${k + 1}을 정답으로 선택">
-            <input type="text" data-f="o" data-k="${k}" value="${esc(o)}" maxlength="80" placeholder="보기 ${k + 1}">
-          </div>`).join("")}
-        <p class="hint">정답인 보기 왼쪽 동그라미를 선택하세요. 보기는 2개 이상 입력하면 돼요.</p>
+        ${optHtml(q, i)}
+        <label>해설 (정오 화면에 표시, 선택)<textarea data-f="exp" maxlength="200">${esc(q.exp)}</textarea></label>
         <div class="nums">
           <label>제한 시간 (5~120초)<input type="number" data-f="time" min="5" max="120" value="${q.time}"></label>
-          <label>배점<input type="number" data-f="pts" min="0" step="100" value="${q.points}"></label>
+          ${q.type === "poll" ? "" : `<label>배점 (0이면 점수 없는 문제)<input type="number" data-f="pts" min="0" step="100" value="${q.pts}"></label>`}
         </div>
       </div>`).join("")}
     <div class="bar">
@@ -180,11 +196,25 @@ $("#editor").addEventListener("input", e => {
   const q = cur.questions[t.closest(".q")?.dataset.i];
   if (f === "title") cur.title = t.value;
   else if (f === "desc") cur.description = t.value;
+  else if (f === "type") { q.type = t.value; q.ai = 0; q.ais = []; if (t.value === "poll") q.pts = 0; else if (!q.pts) q.pts = 1000; pad(q); renderEditor(); }
   else if (f === "text") q.text = t.value;
-  else if (f === "o") q.options[+t.dataset.k] = t.value;
-  else if (f === "a") q.answer = +t.value;
+  else if (f === "o") q.opts[+t.dataset.k] = t.value;
+  else if (f === "a") q.ai = +t.value;
+  else if (f === "m") { const k = +t.dataset.k; q.ais = t.checked ? [...new Set([...q.ais, k])] : q.ais.filter(x => x !== k); }
+  else if (f === "exp") q.exp = t.value;
   else if (f === "time") q.time = +t.value;
-  else if (f === "pts") q.points = +t.value;
+  else if (f === "pts") q.pts = +t.value;
+});
+
+$("#imp").addEventListener("change", async e => {
+  const file = e.target.files[0]; e.target.value = "";
+  if (!file) return;
+  try {
+    const a = JSON.parse(await file.text());
+    if (!Array.isArray(a) || !a.length) throw 0;
+    cur = { id: null, title: file.name.replace(/\.json$/i, ""), description: "", questions: a.map(fromDb) };
+    renderList(); renderEditor(); toast("불러왔어요. 내용을 확인하고 저장하세요.");
+  } catch { toast("JSON 파일 형식이 맞지 않아요.", true); }
 });
 
 document.addEventListener("click", async e => {
@@ -193,8 +223,9 @@ document.addEventListener("click", async e => {
   const act = b.dataset.act;
   if (act === "logout") signOut(auth);
   else if (act === "new") openSet(null);
+  else if (act === "import") $("#imp").click();
   else if (act === "open") openSet(b.dataset.id);
-  else if (act === "add") { cur.questions.push(blankQ()); renderEditor(); }
+  else if (act === "add") { cur.questions.push(mk()); renderEditor(); }
   else if (act === "rm") { cur.questions.splice(+b.dataset.i, 1); renderEditor(); }
   else if (act === "save") save();
   else if (act === "del") {
@@ -204,20 +235,27 @@ document.addEventListener("click", async e => {
   }
 });
 
+const shuf = a => { const b = [...a]; for (let n = 0; n < 9 && b.join() === a.join(); n++) b.sort(() => Math.random() - .5); return b; };
+
+function toDb(q, i) {
+  const e = m => { throw new Error(`문제 ${i + 1}: ${m}`); };
+  const t = q.type, O = q.opts.map(x => x.trim()), L = O.filter(Boolean);
+  if (!q.text.trim()) e("문제 내용을 입력하세요.");
+  if (L.length < 2) e("보기를 2개 이상 입력하세요.");
+  if (new Set(L).size !== L.length) e("같은 보기가 2개 있어요.");
+  const r = { type: t, text: q.text.trim(), options: L, explanation: q.exp.trim(),
+    durationSec: Math.min(120, Math.max(5, q.time || 20)), points: t === "poll" ? 0 : Math.max(0, q.pts || 0) };
+  if (t === "choice" || t === "ox") { if (!O[q.ai]) e("정답을 선택하세요."); r.correct = O[q.ai]; }
+  else if (t === "multi") { const c = q.ais.filter(k => O[k]).map(k => O[k]); if (!c.length) e("정답을 1개 이상 체크하세요."); r.correct = c; }
+  else if (t === "order") { r.correct = L; r.options = shuf(L); }
+  return r;
+}
+
 async function save() {
   const title = cur.title.trim();
   if (!title) return toast("세트 제목을 입력하세요.", true);
-  const qs = [];
-  for (let i = 0; i < cur.questions.length; i++) {
-    const q = cur.questions[i], opts = q.options.map(o => o.trim());
-    if (!q.text.trim()) return toast(`문제 ${i + 1}: 문제 내용을 입력하세요.`, true);
-    if (opts.filter(Boolean).length < 2) return toast(`문제 ${i + 1}: 보기를 2개 이상 입력하세요.`, true);
-    if (!opts[q.answer]) return toast(`문제 ${i + 1}: 정답으로 고른 보기가 비어 있어요.`, true);
-    qs.push({
-      text: q.text.trim(), options: opts, answer: q.answer,
-      time: Math.min(120, Math.max(5, q.time || 20)), points: Math.max(0, q.points || 0)
-    });
-  }
+  let qs;
+  try { qs = cur.questions.map(toDb); } catch (err) { return toast(err.message, true); }
   const id = cur.id || push(ref(db, "quizSets")).key;
   try {
     await set(ref(db, "quizSets/" + id), { title, description: cur.description.trim(), questions: qs, updatedAt: serverTimestamp() });
