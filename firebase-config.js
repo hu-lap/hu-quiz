@@ -12,6 +12,10 @@ const firebaseConfig = {
   appId: "1:408922067085:web:bdfbbda2b6f5d8c9c792c4"
 };
 
+// Firebase 콘솔 Authentication > 사용자 탭에 만든 관리자 이메일을 여기에 적으세요.
+// 로그인 화면에서는 비밀번호만 입력하고, 이 이메일이 자동으로 함께 사용돼요.
+export const ADMIN_EMAIL = "admin@hu-lab.com";
+
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getDatabase(app);

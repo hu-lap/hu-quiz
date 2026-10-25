@@ -51,8 +51,7 @@ aside button.primary{width:100%;margin-bottom:12px}
 <main id="login" class="login">
   <form id="lf" class="card">
     <h1>문제 관리</h1>
-    <label>이메일<input id="em" type="email" autocomplete="username" required></label>
-    <label>비밀번호<input id="pw" type="password" autocomplete="current-password" required></label>
+    <label>비밀번호<input id="pw" type="password" autocomplete="current-password" required autofocus></label>
     <button class="primary">로그인</button>
     <p id="lerr" class="err" role="alert"></p>
   </form>
@@ -72,7 +71,7 @@ aside button.primary{width:100%;margin-bottom:12px}
 <p id="msg" role="status" hidden></p>
 
 <script type="module">
-import { auth, db } from "./firebase-config.js";
+import { auth, db, ADMIN_EMAIL } from "./firebase-config.js";
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import { ref, onValue, push, set, remove, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
 
@@ -93,11 +92,13 @@ $("#lf").addEventListener("submit", async e => {
   e.preventDefault();
   $("#lerr").textContent = "";
   try {
-    await signInWithEmailAndPassword(auth, $("#em").value.trim(), $("#pw").value);
+    await signInWithEmailAndPassword(auth, ADMIN_EMAIL, $("#pw").value);
   } catch (err) {
-    $("#lerr").textContent = ["auth/invalid-credential", "auth/wrong-password", "auth/user-not-found"].includes(err.code)
-      ? "이메일 또는 비밀번호가 맞지 않아요."
-      : "로그인하지 못했어요. (" + err.code + ")";
+    $("#lerr").textContent = ["auth/invalid-credential", "auth/wrong-password", "auth/user-not-found", "auth/invalid-email"].includes(err.code)
+      ? "비밀번호가 맞지 않아요. 계속 안 되면 firebase-config.js의 관리자 이메일을 확인하세요."
+      : err.code === "auth/too-many-requests"
+        ? "시도가 너무 많아요. 잠시 후 다시 해주세요."
+        : "로그인하지 못했어요. (" + err.code + ")";
   }
 });
 
