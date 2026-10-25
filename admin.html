@@ -31,8 +31,16 @@ aside button.primary{width:100%;margin-bottom:12px}
 .item small{display:block;color:var(--sub)}
 .item.active{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
 .empty{color:var(--sub);padding:12px 4px}
-.q{border:1px solid var(--line);border-radius:8px;padding:16px;margin:16px 0;background:#fafbfc}
-.qh{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.q{border:1px solid var(--line);border-radius:8px;margin:10px 0;background:#fafbfc;overflow:hidden}
+.qb{padding:4px 16px 16px;border-top:1px solid var(--line)}
+.qh{display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer}
+.qh:hover{background:#eef1f6}
+.tag{font-size:.75rem;padding:2px 8px;border-radius:99px;background:#e6ecff;color:var(--accent);flex:none}
+.qt{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.meta{color:var(--sub);font-size:.8125rem;flex:none}
+.acts{display:flex;flex:none}
+.acts button{padding:4px 8px}
+@media(max-width:560px){.meta{display:none}.acts button{padding:4px 6px}}
 .opt{display:flex;align-items:center;gap:10px;margin-top:8px}
 .opt input[type=radio],.opt input[type=checkbox]{width:20px;height:20px;margin:0;flex:none}
 .opt input[type=text]{margin:0}
@@ -131,13 +139,14 @@ function renderList() {
     : `<p class="empty">아직 문제 세트가 없어요. 새 문제 세트를 만들어 보세요.</p>`;
 }
 
+const SHORT = { choice: "객관식", ox: "OX", multi: "복수선택", order: "순서", poll: "투표" };
 const NSLOT = { choice: 4, ox: 2, multi: 6, order: 6, poll: 6 };
 const TYPES = { choice: "객관식 (2~4지선다)", ox: "OX", multi: "복수 선택", order: "순서 누르기", poll: "투표 (정답 없음)" };
 const pad = q => { const n = NSLOT[q.type]; q.opts = q.opts.slice(0, n); while (q.opts.length < n) q.opts.push(""); if (q.type === "ox") q.opts = ["O", "X"]; return q; };
-const mk = (type = "choice") => pad({ type, text: "", opts: [], ai: 0, ais: [], exp: "", time: 20, pts: type === "poll" ? 0 : 1000 });
+const mk = (type = "choice") => pad({ open: true, type, text: "", opts: [], ai: 0, ais: [], exp: "", time: 20, pts: type === "poll" ? 0 : 1000 });
 const fromDb = q => {
   const t = TYPES[q.type] ? q.type : "choice", o = [...(q.options || [])];
-  const m = { type: t, text: q.text || "", opts: t === "order" ? [...(q.correct || o)] : o, ai: 0, ais: [], exp: q.explanation || "", time: q.durationSec || 20, pts: q.points ?? 1000 };
+  const m = { open: false, type: t, text: q.text || "", opts: t === "order" ? [...(q.correct || o)] : o, ai: 0, ais: [], exp: q.explanation || "", time: q.durationSec || 20, pts: q.points ?? 1000 };
   if (t === "choice" || t === "ox") m.ai = Math.max(0, o.indexOf(q.correct));
   if (t === "multi") m.ais = (q.correct || []).map(c => o.indexOf(c)).filter(i => i >= 0);
   if (t === "poll") m.pts = 0;
@@ -169,18 +178,30 @@ function renderEditor() {
   ed.innerHTML = `
     <label>세트 제목<input data-f="title" value="${esc(cur.title)}" maxlength="60" placeholder="예: 항공기 객실 안전 1과정"></label>
     <label>설명 (선택)<textarea data-f="desc" maxlength="200">${esc(cur.description)}</textarea></label>
+    <div class="bar"><span class="grow">문제 ${cur.questions.length}개</span><button data-act="expand">모두 펼치기</button><button data-act="collapse">모두 접기</button></div>
     ${cur.questions.map((q, i) => `
       <div class="q" data-i="${i}">
-        <div class="qh"><strong>문제 ${i + 1}</strong>
-          <button class="ghost" data-act="rm" data-i="${i}" ${cur.questions.length < 2 ? "disabled" : ""}>삭제</button></div>
-        <label>유형<select data-f="type">${Object.entries(TYPES).map(([k, v]) => `<option value="${k}" ${q.type === k ? "selected" : ""}>${v}</option>`).join("")}</select></label>
-        <label>문제 내용<textarea data-f="text">${esc(q.text)}</textarea></label>
-        ${optHtml(q, i)}
-        <label>해설 (정오 화면에 표시, 선택)<textarea data-f="exp" maxlength="200">${esc(q.exp)}</textarea></label>
-        <div class="nums">
-          <label>제한 시간 (5~120초)<input type="number" data-f="time" min="5" max="120" value="${q.time}"></label>
-          ${q.type === "poll" ? "" : `<label>배점 (0이면 점수 없는 문제)<input type="number" data-f="pts" min="0" step="100" value="${q.pts}"></label>`}
+        <div class="qh" data-act="tog" data-i="${i}">
+          <span class="no">${i + 1}</span><span class="tag">${SHORT[q.type]}</span>
+          <span class="qt">${esc(q.text.trim().slice(0, 50) || "(문제 내용 없음)")}</span>
+          <span class="meta">${q.time}초 · ${q.type === "poll" ? "투표" : q.pts ? q.pts + "점" : "몸풀기"}</span>
+          <span class="acts">
+            <button class="ghost" data-act="up" data-i="${i}" ${i === 0 ? "disabled" : ""} aria-label="위로">↑</button>
+            <button class="ghost" data-act="down" data-i="${i}" ${i === cur.questions.length - 1 ? "disabled" : ""} aria-label="아래로">↓</button>
+            <button class="ghost" data-act="dup" data-i="${i}">복제</button>
+            <button class="ghost" data-act="rm" data-i="${i}" ${cur.questions.length < 2 ? "disabled" : ""}>삭제</button>
+          </span>
         </div>
+        ${q.open ? `<div class="qb">
+          <label>유형<select data-f="type">${Object.entries(TYPES).map(([k, v]) => `<option value="${k}" ${q.type === k ? "selected" : ""}>${v}</option>`).join("")}</select></label>
+          <label>문제 내용<textarea data-f="text">${esc(q.text)}</textarea></label>
+          ${optHtml(q, i)}
+          <label>해설 (정오 화면에 표시, 선택)<textarea data-f="exp" maxlength="200">${esc(q.exp)}</textarea></label>
+          <div class="nums">
+            <label>제한 시간 (5~120초)<input type="number" data-f="time" min="5" max="120" value="${q.time}"></label>
+            ${q.type === "poll" ? "" : `<label>배점 (0이면 점수 없는 문제)<input type="number" data-f="pts" min="0" step="100" value="${q.pts}"></label>`}
+          </div>
+        </div>` : ""}
       </div>`).join("")}
     <div class="bar">
       <button data-act="add">문제 추가</button>
@@ -225,8 +246,12 @@ document.addEventListener("click", async e => {
   else if (act === "new") openSet(null);
   else if (act === "import") $("#imp").click();
   else if (act === "open") openSet(b.dataset.id);
-  else if (act === "add") { cur.questions.push(mk()); renderEditor(); }
-  else if (act === "rm") { cur.questions.splice(+b.dataset.i, 1); renderEditor(); }
+  else if (act === "add") { cur.questions.push(mk()); renderEditor(); focusQ(cur.questions.length - 1); }
+  else if (act === "tog") { const q = cur.questions[+b.dataset.i]; q.open = !q.open; renderEditor(); }
+  else if (act === "expand" || act === "collapse") { cur.questions.forEach(q => q.open = act === "expand"); renderEditor(); }
+  else if (act === "up" || act === "down") { const i = +b.dataset.i, j = act === "up" ? i - 1 : i + 1, a = cur.questions; [a[i], a[j]] = [a[j], a[i]]; renderEditor(); focusQ(j); }
+  else if (act === "dup") { const i = +b.dataset.i, c = structuredClone(cur.questions[i]); c.open = true; cur.questions.splice(i + 1, 0, c); renderEditor(); focusQ(i + 1); }
+  else if (act === "rm") { if (!confirm("이 문제를 삭제할까요?")) return; cur.questions.splice(+b.dataset.i, 1); renderEditor(); }
   else if (act === "save") save();
   else if (act === "del") {
     if (!confirm(`"${cur.title}" 세트를 삭제할까요? 되돌릴 수 없어요.`)) return;
@@ -235,6 +260,7 @@ document.addEventListener("click", async e => {
   }
 });
 
+const focusQ = i => document.querySelectorAll(".q")[i]?.scrollIntoView({ block: "nearest", behavior: "smooth" });
 const shuf = a => { const b = [...a]; for (let n = 0; n < 9 && b.join() === a.join(); n++) b.sort(() => Math.random() - .5); return b; };
 
 function toDb(q, i) {
