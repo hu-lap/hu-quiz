@@ -409,6 +409,26 @@ button:focus-visible{outline:3px solid #145e95;outline-offset:4px}
 }
 /* Submitted screen follows the previous question scene */
 #submittedScreen{background-image:var(--hu-scene)!important;background-position:center;background-size:cover}
+
+/* 2026-10-25: 답안 영역 높이 확정 — 기존 top/bottom 충돌 방지 */
+@media (max-width:700px){
+  #quizScreen[style*="display: grid"]{min-height:0!important;height:100dvh!important;overflow:hidden}
+  #quizScreen #answers{
+    position:absolute!important;
+    top:auto!important;
+    bottom:max(12px,env(safe-area-inset-bottom))!important;
+    height:calc(30dvh - max(12px,env(safe-area-inset-bottom)))!important;
+    min-height:0!important;
+    max-height:30dvh!important;
+    align-content:stretch!important;
+  }
+  #quizScreen #answers .answer{min-height:0!important;height:100%!important}
+  #quizScreen.hu-selection-controls #answers{
+    bottom:120px!important;
+    height:calc(30dvh - 120px)!important;
+    max-height:30dvh!important;
+  }
+}
 </style>
 </head>
 
