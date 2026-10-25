@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>문제 관리</title>
+<style>
+:root{--bg:#f3f5f8;--card:#fff;--ink:#1b2433;--sub:#5d6b82;--line:#d9dee6;--accent:#2f5bea;--danger:#c8372d;--ok:#1e8a5a}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Pretendard Variable",Pretendard,"Noto Sans KR","Malgun Gothic",system-ui,sans-serif}
+h1{font-size:1.25rem;margin:0}
+label{display:block;font-size:.875rem;color:var(--sub);margin-bottom:12px}
+input,textarea{display:block;width:100%;margin-top:4px;padding:10px 12px;font:inherit;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:6px}
+input:focus,textarea:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+textarea{resize:vertical;min-height:64px}
+button{font:inherit;cursor:pointer;border-radius:6px;padding:10px 16px;border:1px solid var(--line);background:#fff;color:var(--ink)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+button.danger{color:var(--danger);border-color:var(--danger)}
+button.ghost{border-color:transparent;background:transparent;color:var(--sub)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:24px}
+.login{min-height:100vh;display:grid;place-items:center;padding:16px}
+.login .card{width:100%;max-width:360px}
+.login h1{margin-bottom:20px}
+.login button{width:100%;margin-top:4px}
+.err{color:var(--danger);font-size:.875rem;min-height:1.4em;margin:12px 0 0}
+header{display:flex;justify-content:space-between;align-items:center;padding:12px 20px;background:var(--card);border-bottom:1px solid var(--line)}
+.wrap{display:grid;grid-template-columns:280px 1fr;gap:20px;max-width:1100px;margin:20px auto;padding:0 16px;align-items:start}
+aside button.primary{width:100%;margin-bottom:12px}
+.item{display:block;width:100%;text-align:left;margin-bottom:8px;padding:12px 14px;border-radius:8px}
+.item small{display:block;color:var(--sub)}
+.item.active{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.empty{color:var(--sub);padding:12px 4px}
+.q{border:1px solid var(--line);border-radius:8px;padding:16px;margin:16px 0;background:#fafbfc}
+.qh{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.opt{display:flex;align-items:center;gap:10px;margin-top:8px}
+.opt input[type=radio]{width:20px;height:20px;margin:0;flex:none}
+.opt input[type=text]{margin:0}
+.nums{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.nums label{margin:0}
+.hint{color:var(--sub);font-size:.8125rem;margin:8px 0 0}
+.bar{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+.bar .grow{flex:1}
+#msg{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;border-radius:8px;font-size:.9375rem;max-width:90vw}
+#msg.bad{background:var(--danger)}
+@media(max-width:800px){.wrap{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<main id="login" class="login">
+  <form id="lf" class="card">
+    <h1>문제 관리</h1>
+    <label>이메일<input id="em" type="email" autocomplete="username" required></label>
+    <label>비밀번호<input id="pw" type="password" autocomplete="current-password" required></label>
+    <button class="primary">로그인</button>
+    <p id="lerr" class="err" role="alert"></p>
+  </form>
+</main>
+
+<div id="app" hidden>
+  <header><h1>문제 관리</h1><button class="ghost" data-act="logout">로그아웃</button></header>
+  <div class="wrap">
+    <aside>
+      <button class="primary" data-act="new">새 문제 세트</button>
+      <div id="list"></div>
+    </aside>
+    <section id="editor" class="card"></section>
+  </div>
+</div>
+
+<p id="msg" role="status" hidden></p>
+
+<script type="module">
+import { auth, db } from "./firebase-config.js";
+import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import { ref, onValue, push, set, remove, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let sets = {}, cur = null, unsub = null, timer;
+
+const blankQ = () => ({ text: "", options: ["", "", "", ""], answer: 0, time: 20, points: 1000 });
+
+function toast(text, bad) {
+  const m = $("#msg");
+  m.textContent = text; m.className = bad ? "bad" : ""; m.hidden = false;
+  clearTimeout(timer); timer = setTimeout(() => m.hidden = true, 4000);
+}
+
+/* ---------- 로그인 ---------- */
+$("#lf").addEventListener("submit", async e => {
+  e.preventDefault();
+  $("#lerr").textContent = "";
+  try {
+    await signInWithEmailAndPassword(auth, $("#em").value.trim(), $("#pw").value);
+  } catch (err) {
+    $("#lerr").textContent = ["auth/invalid-credential", "auth/wrong-password", "auth/user-not-found"].includes(err.code)
+      ? "이메일 또는 비밀번호가 맞지 않아요."
+      : "로그인하지 못했어요. (" + err.code + ")";
+  }
+});
+
+onAuthStateChanged(auth, user => {
+  $("#login").hidden = !!user;
+  $("#app").hidden = !user;
+  if (user) {
+    unsub = onValue(ref(db, "quizSets"), snap => { sets = snap.val() || {}; renderList(); },
+      () => toast("문제 세트를 불러오지 못했어요. 관리자 계정인지 확인하세요.", true));
+    renderEditor();
+  } else {
+    if (unsub) unsub();
+    unsub = null; sets = {}; cur = null;
+    $("#pw").value = "";
+  }
+});
+
+/* ---------- 목록 ---------- */
+function renderList() {
+  const ids = Object.keys(sets).sort((a, b) => (sets[b].updatedAt || 0) - (sets[a].updatedAt || 0));
+  $("#list").innerHTML = ids.length
+    ? ids.map(id => {
+        const n = Object.keys(sets[id].questions || {}).length;
+        return `<button class="item ${cur && cur.id === id ? "active" : ""}" data-act="open" data-id="${id}">${esc(sets[id].title)}<small>문제 ${n}개</small></button>`;
+      }).join("")
+    : `<p class="empty">아직 문제 세트가 없어요. 새 문제 세트를 만들어 보세요.</p>`;
+}
+
+function openSet(id) {
+  if (!id) { cur = { id: null, title: "", description: "", questions: [blankQ()] }; }
+  else {
+    const s = sets[id];
+    cur = {
+      id, title: s.title || "", description: s.description || "",
+      questions: Object.values(s.questions || {}).map(q => ({
+        text: q.text || "",
+        options: [0, 1, 2, 3].map(i => (q.options && q.options[i]) || ""),
+        answer: q.answer ?? 0, time: q.time ?? 20, points: q.points ?? 1000
+      }))
+    };
+  }
+  renderList(); renderEditor();
+}
+
+/* ---------- 편집 ---------- */
+function renderEditor() {
+  const ed = $("#editor");
+  if (!cur) { ed.innerHTML = `<p class="empty">왼쪽에서 문제 세트를 고르거나 새로 만드세요.</p>`; return; }
+  ed.innerHTML = `
+    <label>세트 제목<input data-f="title" value="${esc(cur.title)}" maxlength="60" placeholder="예: 항공기 객실 안전 1과정"></label>
+    <label>설명 (선택)<textarea data-f="desc" maxlength="200">${esc(cur.description)}</textarea></label>
+    ${cur.questions.map((q, i) => `
+      <div class="q" data-i="${i}">
+        <div class="qh"><strong>문제 ${i + 1}</strong>
+          <button class="ghost" data-act="rm" data-i="${i}" ${cur.questions.length < 2 ? "disabled" : ""}>삭제</button></div>
+        <label>문제 내용<textarea data-f="text">${esc(q.text)}</textarea></label>
+        ${q.options.map((o, k) => `
+          <div class="opt">
+            <input type="radio" name="a${i}" data-f="a" value="${k}" ${q.answer === k ? "checked" : ""} aria-label="보기 ${k + 1}을 정답으로 선택">
+            <input type="text" data-f="o" data-k="${k}" value="${esc(o)}" maxlength="80" placeholder="보기 ${k + 1}">
+          </div>`).join("")}
+        <p class="hint">정답인 보기 왼쪽 동그라미를 선택하세요. 보기는 2개 이상 입력하면 돼요.</p>
+        <div class="nums">
+          <label>제한 시간 (5~120초)<input type="number" data-f="time" min="5" max="120" value="${q.time}"></label>
+          <label>배점<input type="number" data-f="pts" min="0" step="100" value="${q.points}"></label>
+        </div>
+      </div>`).join("")}
+    <div class="bar">
+      <button data-act="add">문제 추가</button>
+      <span class="grow"></span>
+      ${cur.id ? `<button class="danger" data-act="del">세트 삭제</button>` : ""}
+      <button class="primary" data-act="save">저장</button>
+    </div>`;
+}
+
+$("#editor").addEventListener("input", e => {
+  const t = e.target, f = t.dataset.f;
+  if (!cur || !f) return;
+  const q = cur.questions[t.closest(".q")?.dataset.i];
+  if (f === "title") cur.title = t.value;
+  else if (f === "desc") cur.description = t.value;
+  else if (f === "text") q.text = t.value;
+  else if (f === "o") q.options[+t.dataset.k] = t.value;
+  else if (f === "a") q.answer = +t.value;
+  else if (f === "time") q.time = +t.value;
+  else if (f === "pts") q.points = +t.value;
+});
+
+document.addEventListener("click", async e => {
+  const b = e.target.closest("[data-act]");
+  if (!b) return;
+  const act = b.dataset.act;
+  if (act === "logout") signOut(auth);
+  else if (act === "new") openSet(null);
+  else if (act === "open") openSet(b.dataset.id);
+  else if (act === "add") { cur.questions.push(blankQ()); renderEditor(); }
+  else if (act === "rm") { cur.questions.splice(+b.dataset.i, 1); renderEditor(); }
+  else if (act === "save") save();
+  else if (act === "del") {
+    if (!confirm(`"${cur.title}" 세트를 삭제할까요? 되돌릴 수 없어요.`)) return;
+    try { await remove(ref(db, "quizSets/" + cur.id)); cur = null; renderEditor(); toast("삭제했어요."); }
+    catch { toast("삭제하지 못했어요.", true); }
+  }
+});
+
+async function save() {
+  const title = cur.title.trim();
+  if (!title) return toast("세트 제목을 입력하세요.", true);
+  const qs = [];
+  for (let i = 0; i < cur.questions.length; i++) {
+    const q = cur.questions[i], opts = q.options.map(o => o.trim());
+    if (!q.text.trim()) return toast(`문제 ${i + 1}: 문제 내용을 입력하세요.`, true);
+    if (opts.filter(Boolean).length < 2) return toast(`문제 ${i + 1}: 보기를 2개 이상 입력하세요.`, true);
+    if (!opts[q.answer]) return toast(`문제 ${i + 1}: 정답으로 고른 보기가 비어 있어요.`, true);
+    qs.push({
+      text: q.text.trim(), options: opts, answer: q.answer,
+      time: Math.min(120, Math.max(5, q.time || 20)), points: Math.max(0, q.points || 0)
+    });
+  }
+  const id = cur.id || push(ref(db, "quizSets")).key;
+  try {
+    await set(ref(db, "quizSets/" + id), { title, description: cur.description.trim(), questions: qs, updatedAt: serverTimestamp() });
+    cur.id = id; renderEditor(); toast("저장했어요.");
+  } catch { toast("저장하지 못했어요. 로그인 상태를 확인하세요.", true); }
+}
+</script>
+</body>
+</html>
