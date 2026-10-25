@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>퀴즈 진행</title>
+<style>
+:root{--bg:#0f1b3d;--ink:#fff;--sub:#a9b6d8;--acc:#ffc233;--card:#1b2b5c;--line:#34457c;--c0:#e5484d;--c1:#2f6bff;--c2:#e08a00;--c3:#1fa463;--c4:#8e5bd9;--c5:#12a0b8}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font:20px/1.4 "Pretendard Variable",Pretendard,"Noto Sans KR","Malgun Gothic",sans-serif}
+h1{margin:0;font-size:2.4rem;line-height:1.3}
+button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:10px 20px}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+button.act{background:var(--acc);border-color:var(--acc);color:#1b1500;font-weight:700;font-size:1.4rem;padding:14px 36px}
+button:disabled{opacity:.4;cursor:default}
+button.ghost{background:transparent}
+#login{min-height:100vh;display:grid;place-items:center;padding:16px}
+#lf{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:28px;width:100%;max-width:380px}
+#lf h1{font-size:1.5rem;margin-bottom:18px}
+#lf input{display:block;width:100%;margin:6px 0 14px;padding:12px;font:inherit;border-radius:8px;border:1px solid var(--line);background:#fff;color:#111}
+#lf button{width:100%}
+#lerr{color:#ff8a8a;font-size:.9rem;min-height:1.3em;margin:10px 0 0}
+#top{display:flex;justify-content:space-between;align-items:center;padding:14px 28px;color:var(--sub)}
+#top .r{display:flex;gap:10px}
+#top a{color:var(--ink);text-decoration:none;border:1px solid var(--line);background:var(--card);border-radius:10px;padding:10px 20px}
+#v{padding:8px 28px 110px;max-width:1500px;margin:0 auto}
+.mid{min-height:60vh;display:grid;place-items:center;text-align:center}
+.mid h1{font-size:3.2rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;margin-top:24px}
+.grid button{text-align:left;padding:22px;font-size:1.3rem}
+.grid small{display:block;color:var(--sub);font-size:.9rem}
+.lob{display:grid;grid-template-columns:minmax(300px,34vw) 1fr;gap:40px;align-items:start}
+.qrbox{background:#fff;color:#111;border-radius:16px;padding:18px;text-align:center}
+.qrbox svg{width:100%;height:auto;display:block}
+.qrbox p{margin:8px 0 0;font-weight:700;font-size:1.3rem}
+.qrbox small{font-size:.75rem;color:#555;word-break:break-all}
+.who h2{font-size:2.4rem;margin:0 0 14px}
+.chips{display:flex;flex-wrap:wrap;gap:10px}
+.chips span{background:var(--card);border:1px solid var(--line);border-radius:99px;padding:8px 18px;font-size:1.3rem}
+.foot{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:flex-end;align-items:center;gap:14px;padding:16px 28px;background:linear-gradient(transparent,var(--bg) 40%)}
+.foot .note{margin-right:auto;color:var(--sub)}
+.qh{display:flex;align-items:center;gap:14px;color:var(--sub);font-size:1.2rem}
+.qh .cnt{margin-left:auto}
+.qh b{font-size:2.6rem;color:var(--acc);min-width:2.4ch;text-align:right}
+.tag{background:var(--card);border:1px solid var(--line);border-radius:99px;padding:3px 14px;color:var(--ink);font-size:1rem}
+.bar{height:10px;border-radius:99px;background:var(--card);margin:10px 0 28px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--acc);width:100%}
+.qt{margin:18px 0 20px;font-size:2.8rem}
+.hint{color:var(--acc);font-size:1.4rem;margin:-6px 0 16px}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.opts.n3{grid-template-columns:1fr 1fr 1fr}
+.o{background:var(--c);border-radius:14px;padding:26px 24px;font-size:1.9rem;font-weight:600;display:flex;gap:14px;align-items:center;min-height:110px}
+.o em{font-style:normal;background:rgba(0,0,0,.25);border-radius:8px;padding:2px 14px;font-size:1.5rem}
+.rb{display:grid;gap:12px;margin-top:10px}
+.r{display:grid;grid-template-columns:minmax(220px,38%) 1fr 150px;gap:16px;align-items:center;font-size:1.6rem;padding:10px 16px;border-radius:12px;background:var(--card)}
+.r div{height:22px;background:rgba(255,255,255,.1);border-radius:99px;overflow:hidden}
+.r i{display:block;height:100%;background:var(--acc)}
+.r b{text-align:right}
+.r.g{outline:3px solid #34d399}.r.g i{background:#34d399}
+.r.x{opacity:.55}
+.ordl{font-size:2rem;display:grid;gap:8px;padding-left:2.2ch}
+.sum{font-size:1.7rem;margin:22px 0 0}
+.exp{font-size:1.5rem;color:var(--sub);margin:10px 0 0}
+.rank{list-style:none;padding:0;margin:14px 0;display:grid;gap:10px}
+.rank li{display:grid;grid-template-columns:70px 1fr auto;align-items:center;gap:12px;background:var(--card);border-radius:12px;padding:12px 20px;font-size:1.8rem}
+.rank b{color:var(--acc);font-size:2.2rem}
+.rank em{font-style:normal;font-weight:700}
+.pod{display:flex;justify-content:center;align-items:flex-end;gap:14px;margin:30px 0 24px;min-height:380px}
+.pd{width:min(28vw,300px);text-align:center}
+.pd span{display:block;font-size:2rem;font-weight:700;word-break:keep-all}
+.pd em{display:block;font-style:normal;color:var(--sub);margin-bottom:8px;font-size:1.3rem}
+.pd .blk{display:grid;place-items:center;font-size:3.6rem;font-weight:800;color:#1b1500;border-radius:12px 12px 0 0}
+.p1 .blk{height:240px;background:#ffc233}.p2 .blk{height:170px;background:#cfd6e4}.p3 .blk{height:120px;background:#d89a62}
+@media(max-width:900px){.lob{grid-template-columns:1fr}.opts,.opts.n3{grid-template-columns:1fr}.qt{font-size:2rem}.r{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main id="login">
+  <form id="lf">
+    <h1>퀴즈 진행</h1>
+    <label>비밀번호<input id="pw" type="password" autocomplete="current-password" required autofocus></label>
+    <button class="act">로그인</button>
+    <p id="lerr" role="alert"></p>
+  </form>
+</main>
+
+<div id="app" hidden>
+  <div id="top"><span id="ttl"></span>
+    <span class="r"><a id="mg" href="admin.html">문제 관리</a><button id="lo" class="ghost">로그아웃</button></span></div>
+  <main id="v"></main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script type="module">
+import { auth, db, ADMIN_EMAIL } from "./firebase-config.js";
+import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import { ref, onValue, set, update, get } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const R = ref(db, "room");
+const LBL = { choice: "객관식", ox: "OX", multi: "복수 선택", order: "순서 누르기", poll: "투표" };
+const LET = ["A", "B", "C", "D", "E", "F"];
+const PLAY = new URL("play.html", location.href).href;
+let room = null, sets = {}, Qs = null, qsSet = null, timer, tick, offS, offR, off = 0;
+onValue(ref(db, ".info/serverTimeOffset"), s => off = s.val() || 0);
+const now = () => Date.now() + off;
+const view = h => { $("#v").innerHTML = h; };
+
+/* ---------- 로그인 ---------- */
+$("#lf").addEventListener("submit", async e => {
+  e.preventDefault(); $("#lerr").textContent = "";
+  try { await signInWithEmailAndPassword(auth, ADMIN_EMAIL, $("#pw").value); }
+  catch (err) { $("#lerr").textContent = ["auth/invalid-credential", "auth/wrong-password", "auth/user-not-found", "auth/invalid-email"].includes(err.code) ? "비밀번호가 맞지 않아요." : "로그인하지 못했어요. (" + err.code + ")"; }
+});
+$("#lo").onclick = () => signOut(auth);
+onAuthStateChanged(auth, u => {
+  $("#login").hidden = !!u; $("#app").hidden = !u;
+  if (u) {
+    offS = onValue(ref(db, "quizSets"), s => { sets = s.val() || {}; if (!room || !room.state) render(); });
+    offR = onValue(R, s => { room = s.val(); render(); }, () => view(`<p class="mid">데이터를 불러오지 못했어요. 보안 규칙을 확인하세요.</p>`));
+  } else { offS && offS(); offR && offR(); room = null; $("#pw").value = ""; }
+});
+
+/* ---------- 화면 그리기 ---------- */
+async function need() {
+  const id = room.state.setId;
+  Qs = Object.values((await get(ref(db, "quizSets/" + id))).val()?.questions || {}); qsSet = id;
+}
+function render() {
+  clearTimeout(timer); clearInterval(tick);
+  const S = room && room.state;
+  $("#ttl").textContent = S ? S.title : "";
+  $("#mg").hidden = !!S && S.phase !== "lobby";
+  $("#lo").hidden = !!S;
+  if (!S) return picker();
+  if (S.phase !== "lobby" && (!Qs || qsSet !== S.setId)) { need().then(render); return view(`<p class="mid">불러오는 중…</p>`); }
+  ({ lobby, intro, question: qView, result: resView, rank: rankView, final: finalView })[S.phase]();
+}
+function picker() {
+  const ids = Object.keys(sets).sort((a, b) => (sets[b].updatedAt || 0) - (sets[a].updatedAt || 0));
+  view(`<h1>문제 세트를 선택하세요</h1>` + (ids.length
+    ? `<div class="grid">${ids.map(id => `<button data-set="${id}">${esc(sets[id].title)}<small>문제 ${Object.keys(sets[id].questions || {}).length}개</small></button>`).join("")}</div>`
+    : `<p class="sum">문제 세트가 없어요. 오른쪽 위 "문제 관리"에서 만들어 주세요.</p>`));
+}
+function lobby() {
+  const names = Object.values(room.players || {}).map(p => p.name);
+  view(`<div class="lob"><div class="qrbox"><div id="qr"></div><p>QR을 찍어 참여하세요</p><small>${esc(PLAY)}</small></div>
+    <div class="who"><h2>입장 ${names.length}명</h2><div class="chips">${names.map(n => `<span>${esc(n)}</span>`).join("")}</div></div></div>
+    <div class="foot"><button class="ghost" data-a="reset">취소</button><button class="act" data-a="start" ${names.length ? "" : "disabled"}>퀴즈 시작</button></div>`);
+  const q = qrcode(0, "M"); q.addData(PLAY); q.make(); $("#qr").innerHTML = q.createSvgTag({ scalable: true, margin: 2 });
+}
+function intro() {
+  view(`<div class="mid"><h1>잠시 후 퀴즈가 시작됩니다</h1></div>`);
+  timer = setTimeout(() => showQ(0), 2000);
+}
+function qView() {
+  const S = room.state, q = room.question, n = Object.keys((room.answers || {})[S.qk] || {}).length, tot = Object.keys(room.players || {}).length;
+  view(`<div class="qh"><span>${S.qi + 1} / ${S.total}</span><span class="tag">${LBL[q.type]}</span><span class="cnt">응답 ${n}/${tot}</span><b id="cd"></b></div>
+    <div class="bar"><i id="bar"></i></div><h1 class="qt">${esc(q.text)}</h1>
+    ${q.pick ? `<p class="hint">정답 ${q.pick}개를 고르세요</p>` : q.type === "order" ? `<p class="hint">순서대로 누르세요</p>` : ""}
+    <div class="opts n${q.options.length > 2 ? 3 : 2}">${q.options.map((o, i) => `<div class="o" style="--c:var(--c${i})">${q.type === "ox" ? "" : `<em>${LET[i]}</em>`}${esc(o)}</div>`).join("")}</div>`);
+  const total = S.endsAt - S.startedAt;
+  const f = () => { const l = Math.max(0, S.endsAt - now()); const c = $("#cd"), b = $("#bar"); if (c) c.textContent = Math.ceil(l / 1000); if (b) b.style.width = (l / total * 100) + "%"; };
+  f(); tick = setInterval(f, 200);
+  timer = setTimeout(finish, Math.max(0, S.endsAt - now()) + 500);
+}
+const scoring = S => { const q = Qs[S.qi]; return q.type !== "poll" && q.points > 0; };
+function resView() {
+  const S = room.state, q = Qs[S.qi], r = room.result || {}, cnt = r.cnt || [], max = Math.max(1, ...cnt), tot = r.resp || 0, poll = q.type === "poll";
+  const body = q.type === "order"
+    ? `<ol class="ordl">${q.correct.map(c => `<li>${esc(c)}</li>`).join("")}</ol>`
+    : `<div class="rb">${q.options.map((o, i) => {
+        const good = !poll && (Array.isArray(q.correct) ? q.correct.includes(o) : q.correct === o), c = cnt[i] || 0;
+        return `<div class="r ${poll ? "" : good ? "g" : "x"}"><span>${esc(o)}${good ? " ✓" : ""}</span><div><i style="width:${c / max * 100}%"></i></div><b>${c}명${poll && tot ? ` (${Math.round(c / tot * 100)}%)` : ""}</b></div>`;
+      }).join("")}</div>`;
+  view(`<div class="qh"><span>${S.qi + 1} / ${S.total}</span><span class="tag">${poll ? "투표 결과" : "정답 공개"}</span></div>
+    <h1 class="qt">${esc(q.text)}</h1>${body}
+    ${poll ? "" : `<p class="sum">정답 ${r.ok || 0}명 / 응답 ${tot}명</p>`}${r.exp ? `<p class="exp">${esc(r.exp)}</p>` : ""}
+    <div class="foot"><button class="act" data-a="next">${scoring(S) ? "순위 보기" : S.qi + 1 < S.total ? "다음 문제" : "최종 순위"}</button></div>`);
+}
+function ranking() {
+  const P = room.players || {}, Sc = room.scores || {};
+  return Object.keys(P).map(id => ({ n: P[id].name, s: (Sc[id] || {}).s || 0, t: (Sc[id] || {}).t || 0 })).sort((a, b) => b.s - a.s || a.t - b.t);
+}
+const li = (p, i) => `<li><b>${i}</b><span>${esc(p.n)}</span><em>${p.s}점</em></li>`;
+function rankView() {
+  const S = room.state;
+  view(`<div class="qh"><span>${S.qi + 1} / ${S.total}</span><span class="tag">순위</span></div><h1 class="qt">현재 순위</h1>
+    <ol class="rank">${ranking().slice(0, 5).map((p, i) => li(p, i + 1)).join("")}</ol>
+    <div class="foot"><button class="act" data-a="next">${S.qi + 1 < S.total ? "다음 문제" : "최종 순위"}</button></div>`);
+}
+function finalView() {
+  const S = room.state, L = ranking();
+  view(`<h1 class="qt" style="text-align:center">최종 순위</h1>
+    <div class="pod">${[1, 0, 2].filter(i => L[i]).map(i => `<div class="pd p${i + 1}"><span>${esc(L[i].n)}</span><em>${L[i].s}점</em><div class="blk">${i + 1}</div></div>`).join("")}</div>
+    ${L.length > 3 ? `<ol class="rank">${L.slice(3).map((p, i) => li(p, i + 4)).join("")}</ol>` : ""}
+    <div class="foot"><span class="note">${S.closed ? "참가자 접속이 종료되었습니다." : "잠시 후 참가자 접속이 종료됩니다."}</span><button class="act" data-a="reset">처음으로</button></div>`);
+  if (!S.closed) timer = setTimeout(() => update(R, { "state/closed": true }), Math.max(0, S.closeAt - now()));
+}
+
+/* ---------- 진행 ---------- */
+async function openRoom(id) {
+  const s = sets[id]; Qs = Object.values(s.questions || {}); qsSet = id;
+  await set(R, { state: { phase: "lobby", setId: id, title: s.title, total: Qs.length, qi: -1, qk: "" } });
+}
+async function showQ(i) {
+  const S = room.state, q = Qs[i], t = now(), d = q.durationSec * 1000;
+  await update(R, {
+    state: { phase: "question", setId: S.setId, title: S.title, total: S.total, qi: i, qk: "q" + i, startedAt: t, endsAt: t + d },
+    question: { type: q.type, text: q.text, options: q.options, durationSec: q.durationSec, pick: q.type === "multi" ? q.correct.length : 0 },
+    result: null
+  });
+}
+async function finish() {
+  const S = room.state; if (S.phase !== "question") return;
+  const q = Qs[S.qi], A = (await get(ref(db, "room/answers/" + S.qk))).val() || {}, P = room.players || {}, old = room.scores || {};
+  const dur = S.endsAt - S.startedAt, per = {}, cnt = q.options.map(() => 0), up = {};
+  let ok = 0, resp = 0;
+  for (const pid in P) {
+    const x = A[pid], poll = q.type === "poll";
+    if (!x) { if (!poll) per[pid] = { ok: false, pts: 0 }; continue; }
+    resp++;
+    const c = x.choice;
+    if (q.type !== "order") (Array.isArray(c) ? c : [c]).forEach(v => { const k = q.options.indexOf(v); if (k >= 0) cnt[k]++; });
+    if (poll) continue;
+    const good = q.type === "order" ? JSON.stringify(c) === JSON.stringify(q.correct)
+      : q.type === "multi" ? Array.isArray(c) && c.length === q.correct.length && q.correct.every(v => c.includes(v))
+      : c === q.correct;
+    const el = Math.min(dur, Math.max(0, x.at - S.startedAt));
+    const pts = good && q.points > 0 ? Math.round(q.points * (0.5 + 0.5 * (1 - el / dur))) : 0;
+    per[pid] = { ok: good, pts }; if (good) ok++;
+    if (q.points > 0) { const o = old[pid] || { s: 0, t: 0 }; up["scores/" + pid] = { s: o.s + pts, t: o.t + (good ? el : 0) }; }
+  }
+  await update(R, { ...up, result: { qi: S.qi, cnt, per, ok, resp, exp: q.explanation || "" }, "state/phase": "result" });
+}
+async function next() {
+  const S = room.state;
+  if (S.phase === "result" && scoring(S)) return update(R, { "state/phase": "rank" });
+  if (S.qi + 1 < S.total) return showQ(S.qi + 1);
+  return update(R, { "state/phase": "final", "state/closeAt": now() + 30000 });
+}
+
+document.addEventListener("click", e => {
+  const s = e.target.closest("[data-set]"); if (s) return openRoom(s.dataset.set);
+  const a = e.target.closest("[data-a]")?.dataset.a;
+  if (a === "start") update(R, { "state/phase": "intro" });
+  else if (a === "next") next();
+  else if (a === "reset") set(R, null);
+});
+document.addEventListener("keydown", e => {
+  if ((e.code === "Space" || e.code === "ArrowRight") && !e.target.closest("input,button,a")) {
+    const b = document.querySelector("button.act[data-a=next]"); if (b) { e.preventDefault(); b.click(); }
+  }
+});
+</script>
+</body>
+</html>
