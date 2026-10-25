@@ -401,7 +401,7 @@ button:focus-visible{outline:3px solid #145e95;outline-offset:4px}
  #quizScreen #studentPicture{grid-column:1/-1;grid-row:3;width:100%;height:100%;min-height:0;max-height:100%;object-fit:contain;margin:0;box-shadow:none;align-self:center}
  #quizScreen #answers{position:absolute;top:70%;bottom:max(12px,env(safe-area-inset-bottom));left:12px;right:12px;width:auto;height:auto;max-width:none;margin:0;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;grid-template-rows:repeat(var(--answer-rows,2),minmax(0,1fr));gap:8px;align-content:stretch}
  #quizScreen #answers .answer{position:static!important;box-sizing:border-box;width:100%;height:100%;min-width:0;min-height:0;margin:0;padding:12px;font-size:clamp(20px,5.6vw,30px);line-height:1.3;white-space:normal;overflow-wrap:anywhere;overflow:auto;border-radius:16px;touch-action:manipulation}
- #quizScreen #studentPicture{position:absolute;top:var(--photo-top,150px);left:12px;width:calc(100% - 24px);height:calc(70% - var(--photo-top,150px) - 14px)}
+ #quizScreen #studentPicture{position:absolute;top:var(--photo-top,150px);left:12px;width:calc(100% - 24px);height:calc(64% - var(--photo-top,150px) - 14px)}
  #quizScreen #timeOverMessage{position:absolute;top:45%;left:12px;right:12px;z-index:3;margin:0}
  #quizScreen.hu-selection-controls #answers{bottom:120px}
  #quizScreen #orderInfo{position:absolute;bottom:62px;left:12px;right:12px;margin:0;padding:6px;max-height:48px;overflow:auto}
@@ -410,23 +410,23 @@ button:focus-visible{outline:3px solid #145e95;outline-offset:4px}
 /* Submitted screen follows the previous question scene */
 #submittedScreen{background-image:var(--hu-scene)!important;background-position:center;background-size:cover}
 
-/* 2026-10-25: 답안 영역 높이 확정 — 기존 top/bottom 충돌 방지 */
+/* 2026-10-25: 답안 영역 기존 대비 20% 확대 (30dvh → 36dvh) — 기존 top/bottom 충돌 방지 */
 @media (max-width:700px){
   #quizScreen[style*="display: grid"]{min-height:0!important;height:100dvh!important;overflow:hidden}
   #quizScreen #answers{
     position:absolute!important;
     top:auto!important;
     bottom:max(12px,env(safe-area-inset-bottom))!important;
-    height:calc(30dvh - max(12px,env(safe-area-inset-bottom)))!important;
+    height:calc(36dvh - max(12px,env(safe-area-inset-bottom)))!important;
     min-height:0!important;
-    max-height:30dvh!important;
+    max-height:36dvh!important;
     align-content:stretch!important;
   }
   #quizScreen #answers .answer{min-height:0!important;height:100%!important}
   #quizScreen.hu-selection-controls #answers{
     bottom:120px!important;
-    height:calc(30dvh - 120px)!important;
-    max-height:30dvh!important;
+    height:calc(36dvh - 120px)!important;
+    max-height:36dvh!important;
   }
 }
 </style>
