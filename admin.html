@@ -95,7 +95,7 @@ $("#lf").addEventListener("submit", async e => {
     await signInWithEmailAndPassword(auth, ADMIN_EMAIL, $("#pw").value);
   } catch (err) {
     $("#lerr").textContent = ["auth/invalid-credential", "auth/wrong-password", "auth/user-not-found", "auth/invalid-email"].includes(err.code)
-      ? "비밀번호가 맞지 않아요. 계속 안 되면 firebase-config.js의 관리자 이메일을 확인하세요."
+      ? `비밀번호가 맞지 않아요. (${err.code} / ${ADMIN_EMAIL})`
       : err.code === "auth/too-many-requests"
         ? "시도가 너무 많아요. 잠시 후 다시 해주세요."
         : "로그인하지 못했어요. (" + err.code + ")";
