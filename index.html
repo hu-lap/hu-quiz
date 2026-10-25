@@ -424,10 +424,27 @@ button:focus-visible{outline:3px solid #145e95;outline-offset:4px}
   }
   #quizScreen #answers .answer{min-height:0!important;height:100%!important}
   #quizScreen.hu-selection-controls #answers{
-    bottom:120px!important;
-    height:calc(36dvh - 108px)!important;
+    bottom:98px!important;
+    height:calc(36dvh - 86px)!important;
     max-height:36dvh!important;
   }
+}
+/* Multi-answer: submit and reset must stay visible, without covering choices. */
+@media(max-width:700px){
+ #quizScreen.hu-selection-controls #orderControls{
+   display:flex!important;gap:10px;justify-content:center;align-items:center;
+   bottom:max(12px,env(safe-area-inset-bottom))!important;
+   height:54px;z-index:6;
+ }
+ #quizScreen.hu-selection-controls #orderControls button{flex:1;min-height:48px;font-size:17px}
+ #quizScreen.hu-selection-controls #orderInfo{
+   bottom:calc(max(12px,env(safe-area-inset-bottom)) + 59px)!important;
+   max-height:27px!important;min-height:0;overflow:hidden;z-index:5;
+ }
+ #quizScreen.hu-selection-controls #answers{
+   bottom:calc(max(12px,env(safe-area-inset-bottom)) + 98px)!important;
+   height:calc(36dvh - 98px)!important;
+ }
 }
 </style>
 </head>
@@ -1411,8 +1428,14 @@ async function submitChoice(
    순서 선택
 ------------------------- */
 
+function huMultiCorrect(answer,correct){
+ const asArray=v=>Array.isArray(v)?v:(typeof v==="string"&&v.trim()?v.split(/\\s*[,，\\n]\\s*/):[]);
+ const a=asArray(answer).map(v=>String(v).trim()).filter(Boolean);
+ const b=asArray(correct).map(v=>String(v).trim()).filter(Boolean);
+ return a.length>0&&a.length===b.length&&new Set(a).size===a.length&&a.every(v=>b.includes(v));
+}
 function selectMulti(button,option){
- if(submittedQuestion===currentQuestion||timeExpired)return;
+ if(submittedQuestion===currentQuestion||timeExpired||answerSaving)return;
  if(orderSelection.includes(option)){orderSelection=orderSelection.filter(v=>v!==option);button.classList.remove("used");}
  else{orderSelection.push(option);button.classList.add("used");}
  updateOrderDisplay();
@@ -1465,7 +1488,9 @@ function updateOrderDisplay() {
   } else {
 
     display.textContent =
-      orderSelection.map(v => (questions[currentQuestion]?.options.indexOf(v) ?? -1) + 1).join(" → ");
+      (questions[currentQuestion]?.type === "multi"
+        ? orderSelection.length + "개 선택: " + orderSelection.map(v => (questions[currentQuestion]?.options.indexOf(v) ?? -1) + 1).join(", ")
+        : orderSelection.map(v => (questions[currentQuestion]?.options.indexOf(v) ?? -1) + 1).join(" → "));
 
   }
 
@@ -1644,7 +1669,7 @@ function showResult() {
 
   if (myAnswer !== null) {
 
-    if (q.type === "poll") { isCorrect = true; } else if (q.type === "multi") { isCorrect = JSON.stringify([...(myAnswer||[])].sort()) === JSON.stringify([...q.correct].sort()); } else if (q.type === "order") {
+    if (q.type === "poll") { isCorrect = true; } else if (q.type === "multi") { isCorrect = huMultiCorrect(myAnswer,q.correct); } else if (q.type === "order") {
 
       isCorrect =
         JSON.stringify(myAnswer) ===

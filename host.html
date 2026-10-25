@@ -807,6 +807,8 @@ button:focus-visible{outline:3px solid #145e95;outline-offset:4px}
     <div id="setQuestionList" class="set-list"></div>
     <button class="secondary" id="addQuestionBtn" type="button">+ 문제 추가</button>
     <button class="secondary" id="selectAllQuestionsBtn" type="button">전체 선택</button><button class="secondary" id="deselectAllQuestionsBtn" type="button">선택 해제</button><button class="secondary" id="deleteSelectedQuestionsBtn" type="button">선택 문제 삭제</button>
+     <button class="secondary" id="exportSetBtn" type="button">📤 선택 세트 JSON 다운로드</button>
+     <button class="secondary" id="exportAllSetsBtn" type="button">📦 전체 세트 JSON 백업</button>
      <button class="secondary" id="importSetBtn" type="button">📥 JSON 세트 일괄 가져오기</button><input id="importSetFile" type="file" accept=".json,application/json" style="display:none">
     <div id="setEditor" class="set-editor">
       <h3 id="editorTitle">문제 편집</h3>
@@ -1513,6 +1515,27 @@ document.getElementById("deleteSelectedQuestionsBtn").onclick=async()=>{
  try{await saveSetQuestions(items);selectedQuestionIndices.clear();updateSetUI();}
  catch(e){alert("선택 문제 삭제 실패");console.error(e);}
 };
+// Firebase에서 현재 읽어 온 문제 세트를 변경 없이 JSON 파일로 저장합니다.
+function huDownloadQuizJson(payload, filename){
+ const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json;charset=utf-8"});
+ const url=URL.createObjectURL(blob);
+ const a=document.createElement("a");a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),30000);
+}
+function huSafeFileName(name){return String(name||"quiz").replace(/[\\/:*?"<>|\x00-\x1f]/g,"_").slice(0,70);}
+function huBackupDate(){const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("");}
+document.getElementById("exportSetBtn").onclick=()=>{
+ if(!adminAuthenticated){alert("관리자 로그인이 필요합니다.");return;}
+ if(setLoading){alert("문제 세트를 불러오는 중입니다.");return;}
+ const data=getSelectedSet();if(!data){alert("다운로드할 문제 세트를 먼저 선택하세요.");return;}
+ huDownloadQuizJson({name:data.name||"이름 없는 세트",questions:data.questions||[]},`HU_Quiz_${huSafeFileName(data.name)}_${huBackupDate()}.json`);
+};
+document.getElementById("exportAllSetsBtn").onclick=()=>{
+ if(!adminAuthenticated){alert("관리자 로그인이 필요합니다.");return;}
+ if(setLoading){alert("문제 세트를 불러오는 중입니다.");return;}
+ if(!Object.keys(quizSets).length){alert("백업할 문제 세트가 없습니다.");return;}
+ huDownloadQuizJson({format:"HU-Quiz-all-sets-backup",version:1,exportedAt:new Date().toISOString(),quizSets},`HU_Quiz_전체문제백업_${huBackupDate()}.json`);
+};
 // 세트 전체를 새로 생성하며 기존 세트는 변경하지 않습니다.
 document.getElementById("importSetBtn").onclick=()=>{if(!canEditSets())return;document.getElementById("importSetFile").click();};
 document.getElementById("importSetFile").onchange=async e=>{
@@ -1970,6 +1993,12 @@ window.revealAnswer = async function() {
   const totalMs =
     Number(q.durationSec) * 1000;
 
+  const huMultiCorrect=(answer,correct)=>{
+    const parse=v=>Array.isArray(v)?v:(typeof v==="string"&&v.trim()?v.split(/\\s*[,，\\n]\\s*/):[]);
+    const a=parse(answer).map(v=>String(v).trim()).filter(Boolean);
+    const b=parse(correct).map(v=>String(v).trim()).filter(Boolean);
+    return a.length>0&&a.length===b.length&&new Set(a).size===a.length&&a.every(v=>b.includes(v));
+  };
   const correctAnswers =
     currentAnswers
        .filter(data => {
@@ -1977,7 +2006,7 @@ window.revealAnswer = async function() {
         const submittedAt = Number(data.submittedAt);
         if (!Number.isFinite(submittedAt) || submittedAt < questionStartedAt ||
             submittedAt > questionStartedAt + Number(q.durationSec) * 1000) return false;
-        return q.type === "poll" ? false : (q.type === "order" ? JSON.stringify(data.answer) === JSON.stringify(q.correct) : q.type === "multi" ? Array.isArray(data.answer)&&JSON.stringify([...data.answer].sort())===JSON.stringify([...q.correct].sort()) : data.answer === q.correct);
+        return q.type === "poll" ? false : (q.type === "order" ? JSON.stringify(data.answer) === JSON.stringify(q.correct) : q.type === "multi" ? huMultiCorrect(data.answer,q.correct) : data.answer === q.correct);
       })
       .map(data => {
 
