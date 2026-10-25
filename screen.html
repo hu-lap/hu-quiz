@@ -209,7 +209,7 @@ async function showQ(i) {
   const S = room.state, q = Qs[i], t = now(), d = q.durationSec * 1000;
   await update(R, {
     state: { phase: "question", setId: S.setId, title: S.title, total: S.total, qi: i, qk: "q" + i, startedAt: t, endsAt: t + d },
-    question: { type: q.type, text: q.text, options: q.options, durationSec: q.durationSec, pick: q.type === "multi" ? q.correct.length : 0 },
+    question: { type: q.type, text: q.text, options: q.options, durationSec: q.durationSec, pick: q.type === "multi" ? q.correct.length : 0, seq: q.type === "order" ? q.correct : null },
     result: null
   });
 }

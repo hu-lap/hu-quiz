@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>퀴즈 참여</title>
+<style>
+:root{--bg:#0f1b3d;--ink:#fff;--sub:#a9b6d8;--acc:#ffc233;--card:#1b2b5c;--line:#34457c;--c0:#e5484d;--c1:#2f6bff;--c2:#e08a00;--c3:#1fa463;--c4:#8e5bd9;--c5:#12a0b8}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font:18px/1.45 "Pretendard Variable",Pretendard,"Noto Sans KR","Malgun Gothic",system-ui,sans-serif;-webkit-tap-highlight-color:transparent}
+#top{display:flex;justify-content:space-between;padding:12px 16px;color:var(--sub);font-size:.95rem;min-height:48px}
+#v{padding:4px 16px 40px;max-width:560px;margin:0 auto}
+.box{min-height:60vh;display:flex;flex-direction:column;justify-content:center;text-align:center;gap:6px}
+.box h1{margin:0;font-size:1.9rem;line-height:1.3}
+.box p{margin:6px 0 0;color:var(--sub)}
+.box.ok h1{color:#34d399}.box.no h1{color:#ff8a8a}
+.box .pts{font-size:2.6rem;font-weight:800;color:var(--acc);margin:6px 0 0}
+label{display:block;text-align:left;color:var(--sub);font-size:.95rem;margin:18px 0 8px}
+input{width:100%;padding:16px;font:inherit;font-size:1.3rem;border-radius:12px;border:1px solid var(--line);background:#fff;color:#111}
+input:focus-visible,button:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+button{font:inherit;cursor:pointer;border:0;color:#fff}
+.big{width:100%;margin-top:14px;padding:16px;border-radius:12px;background:var(--acc);color:#1b1500;font-weight:700;font-size:1.3rem}
+.big:disabled{opacity:.4}
+.err{color:#ff8a8a;min-height:1.4em;margin:10px 0 0;text-align:left}
+.qh{display:flex;justify-content:space-between;align-items:center;color:var(--sub)}
+.qh b{font-size:2rem;color:var(--acc)}
+.bar{height:8px;border-radius:99px;background:var(--card);margin:6px 0 16px;overflow:hidden}
+.bar i{display:block;height:100%;width:100%;background:var(--acc)}
+.qt{font-size:1.45rem;font-weight:700;margin:6px 0 12px}
+.hint{color:var(--acc);margin:0 0 10px}
+.opts{display:grid;gap:12px}
+.opts.ox{grid-template-columns:1fr 1fr}
+.o{position:relative;display:flex;align-items:center;gap:12px;width:100%;min-height:76px;padding:14px 16px;border-radius:14px;background:var(--c);font-size:1.15rem;font-weight:600;text-align:left}
+.opts.ox .o{justify-content:center;font-size:2.6rem;min-height:140px}
+.o em{font-style:normal;background:rgba(0,0,0,.25);border-radius:8px;padding:2px 12px}
+.o.on{outline:4px solid #fff}
+.o.on::after{content:"✓";position:absolute;right:14px;font-size:1.6rem}
+.o.done{opacity:.45}
+.o .no{margin-left:auto;background:#fff;color:#111;border-radius:99px;min-width:34px;height:34px;display:grid;place-items:center}
+.bad{animation:sh .3s}
+@keyframes sh{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+@media(prefers-reduced-motion:reduce){.bad{animation:none;outline:4px solid #ff8a8a}}
+</style>
+</head>
+<body>
+<div id="top"><span id="me"></span><span>퀴즈</span></div>
+<main id="v"></main>
+
+<script type="module">
+import { db } from "./firebase-config.js";
+import { ref, onValue, set, goOffline, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const LET = ["A", "B", "C", "D", "E", "F"];
+const LS = localStorage, SS = sessionStorage;
+const pid = LS.hqPid || (LS.hqPid = Array.from(crypto.getRandomValues(new Uint8Array(10)), b => b.toString(36).padStart(2, "0")).join("").slice(0, 20));
+let S = null, Q = null, Rz = null, Sc = {}, P = {}, off = 0, tick, err = "", lastK = "", picked = [], sel = [], ended = false;
+const v = h => { $("#v").innerHTML = h; };
+const msg = (a, b = "", c = "") => `<div class="box ${c}"><h1>${a}</h1>${b}</div>`;
+const ak = () => "a_" + (S ? S.qk + ":" + S.startedAt : "");
+const has = () => !!SS.getItem(ak());
+
+onValue(ref(db, ".info/serverTimeOffset"), s => off = s.val() || 0);
+[["state", x => S = x], ["question", x => Q = x], ["result", x => Rz = x], ["scores", x => Sc = x || {}], ["players", x => P = x || {}]]
+  .forEach(([p, f]) => onValue(ref(db, "room/" + p), s => { f(s.val()); render(); }, () => { err = "연결할 수 없어요. 새로고침해 주세요."; render(); }));
+
+function rk() {
+  const L = Object.keys(P).map(id => ({ id, s: (Sc[id] || {}).s || 0, t: (Sc[id] || {}).t || 0 })).sort((a, b) => b.s - a.s || a.t - b.t);
+  return { n: L.findIndex(x => x.id === pid) + 1, tot: L.length, s: (Sc[pid] || {}).s || 0 };
+}
+
+function render() {
+  clearInterval(tick);
+  if (ended) return;
+  const me = P[pid];
+  $("#me").textContent = me ? me.name : "";
+  if (S && S.closed && me) return end();
+  if (!S) return v(msg("퀴즈가 아직 열리지 않았어요", `<p>${esc(err) || "강사가 시작하면 여기서 입장할 수 있어요."}</p>`));
+  if (!me) return S.phase === "lobby" ? joinView() : v(msg("이미 퀴즈가 시작되었어요", "<p>다음에 참여해 주세요.</p>"));
+  ({
+    lobby: () => v(msg("입장했어요!", `<p>퀴즈 시작을 기다려요.<br>현재 ${Object.keys(P).length}명 입장</p>`)),
+    intro: () => v(msg("잠시 후 퀴즈가 시작됩니다")),
+    question: qView, result: resView, rank: rankView, final: finView
+  })[S.phase]();
+}
+
+function joinView() {
+  const keep = document.getElementById("nm")?.value;
+  v(`<div class="box" style="text-align:left"><h1>퀴즈 참여</h1><form id="jf"><label for="nm">닉네임 (최대 12자)</label>
+    <input id="nm" maxlength="12" autocomplete="off" required value="${esc(keep ?? LS.hqName ?? "")}">
+    <button class="big">입장</button><p class="err" role="alert">${esc(err)}</p></form></div>`);
+  if (keep !== undefined) $("#nm").focus();
+  $("#jf").onsubmit = async e => {
+    e.preventDefault();
+    const n = $("#nm").value.trim(); if (!n) return;
+    if (Object.values(P).some(p => p.name === n)) { err = "이미 사용 중인 닉네임이에요."; return render(); }
+    try { await set(ref(db, "room/players/" + pid), { name: n }); LS.hqName = n; err = ""; }
+    catch { err = "입장하지 못했어요. 다시 시도해 주세요."; render(); }
+  };
+}
+
+function timer() {
+  const t = S.endsAt - S.startedAt;
+  const f = () => { const l = Math.max(0, S.endsAt - (Date.now() + off)); const c = $("#cd"), b = $("#bar"); if (c) c.textContent = Math.ceil(l / 1000); if (b) b.style.width = (l / t * 100) + "%"; };
+  f(); tick = setInterval(f, 250);
+}
+
+function qView() {
+  if (!Q) return;
+  if (lastK !== ak()) { lastK = ak(); picked = []; sel = []; }
+  const head = `<div class="qh"><span>${S.qi + 1} / ${S.total}</span><b id="cd"></b></div><div class="bar"><i id="bar"></i></div>`;
+  if (has()) { v(head + msg("제출했어요", "<p>결과를 기다려요.</p>")); return timer(); }
+  const t = Q.type;
+  const opts = Q.options.map((o, i) => {
+    const on = t === "multi" && picked.includes(i), si = sel.indexOf(i);
+    return `<button class="o ${on ? "on" : ""} ${si >= 0 ? "done" : ""}" style="--c:var(--c${i})" data-i="${i}">${t === "ox" ? "" : `<em>${LET[i]}</em>`}${esc(o)}${si >= 0 ? `<span class="no">${si + 1}</span>` : ""}</button>`;
+  }).join("");
+  v(head + `<h1 class="qt">${esc(Q.text)}</h1>
+    ${Q.pick ? `<p class="hint">정답 ${Q.pick}개를 고르세요</p>` : t === "order" ? `<p class="hint">순서대로 누르세요. 틀리면 다시 눌러요.</p>` : t === "poll" ? `<p class="hint">정답 없는 투표예요</p>` : ""}
+    <div class="opts ${t === "ox" ? "ox" : ""}">${opts}</div>
+    ${t === "multi" ? `<button class="big" id="sub" ${picked.length ? "" : "disabled"}>제출</button>` : ""}`);
+  timer();
+}
+
+$("#v").addEventListener("click", e => {
+  if (!S || S.phase !== "question" || !Q || has()) return;
+  if (e.target.closest("#sub")) return picked.length && submit(picked.map(i => Q.options[i]));
+  const b = e.target.closest(".o"); if (!b) return;
+  const i = +b.dataset.i, o = Q.options[i], t = Q.type;
+  if (t === "multi") { picked = picked.includes(i) ? picked.filter(x => x !== i) : [...picked, i]; return render(); }
+  if (t === "order") {
+    if (sel.includes(i)) return;
+    if (o === (Q.seq || [])[sel.length]) { sel.push(i); return sel.length === Q.seq.length ? submit(sel.map(k => Q.options[k])) : render(); }
+    b.classList.remove("bad"); void b.offsetWidth; b.classList.add("bad"); navigator.vibrate?.(80); return;
+  }
+  submit(o);
+});
+
+async function submit(choice) {
+  SS.setItem(ak(), "1"); render();
+  try { await set(ref(db, "room/answers/" + S.qk + "/" + pid), { choice, at: serverTimestamp() }); } catch { /* 이미 제출했거나 시간이 끝남 */ }
+}
+
+function resView() {
+  const poll = Q && Q.type === "poll", ans = has(), me = ((Rz || {}).per || {})[pid], r = rk();
+  if (poll) return v(msg(ans ? "투표 완료!" : "투표하지 않았어요", "<p>결과는 앞 화면에서 확인하세요.</p>"));
+  const ok = ans && me && me.ok;
+  const sc = r.tot ? `<p>총점 ${r.s}점 · ${r.n}등</p>` : "";
+  v(msg(ok ? "정답! 🎉" : ans ? "오답" : "시간 초과", (ok && me.pts > 0 ? `<div class="pts">+${me.pts}점</div>` : "") + sc, ok ? "ok" : "no"));
+}
+function rankView() { const r = rk(); v(msg(`${r.n}등`, `<p>${r.tot}명 중 · 총점 ${r.s}점</p>`)); }
+function finView() { const r = rk(); v(msg(`최종 ${r.n}등`, `<div class="pts">${r.s}점</div><p>${r.tot}명 중 · 잠시 후 접속이 종료돼요.</p>`)); }
+function end() {
+  ended = true; delete LS.hqPid;
+  v(msg("수고하셨습니다", "<p>참여해 주셔서 감사합니다.<br>이 화면은 닫으셔도 돼요.</p>"));
+  goOffline(db);
+}
+</script>
+</body>
+</html>
