@@ -680,6 +680,18 @@ button:focus-visible{outline:3px solid #145e95;outline-offset:4px}
 .hu-podium-place.empty{opacity:.4}
 .hu-podium-rest{font-size:18px;color:#dce7fb;margin:12px}
 @media(max-width:700px){.hu-podium{min-height:260px;gap:5px}.hu-podium-place.first .hu-podium-step{height:120px}.hu-podium-place.second .hu-podium-step{height:90px}.hu-podium-place.third .hu-podium-step{height:70px}}
+
+/* Fullscreen ranking, automatic after answer reveal. */
+#rankButton{display:none!important}
+#ranking.hu-fullscreen-podium{position:fixed!important;inset:0!important;z-index:9999!important;max-width:none!important;width:100vw!important;height:100dvh!important;margin:0!important;border-radius:0!important;box-sizing:border-box!important;padding:clamp(18px,4vh,52px) clamp(16px,5vw,80px)!important;overflow-y:auto!important;display:flex!important;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(155deg,#0b1730,#1b3760 60%,#10243f)!important;color:white!important}
+#ranking.hu-fullscreen-podium #rankingList{width:min(1100px,100%)}
+#ranking.hu-fullscreen-podium .hu-podium{min-height:35vh;gap:clamp(12px,3vw,42px)}
+#ranking.hu-fullscreen-podium .hu-podium-place{max-width:310px}
+#ranking.hu-fullscreen-podium .hu-podium-rest{font-size:clamp(19px,2.4vw,31px);line-height:1.6}
+#ranking.hu-fullscreen-podium #rankCloseButton{display:none!important}
+#podiumNextButton{display:none;margin:20px auto 0;padding:15px 44px;border:0;border-radius:16px;background:#f3c65a;color:#202d45;font-size:clamp(19px,2vw,27px);font-weight:850;cursor:pointer}
+#ranking.hu-fullscreen-podium #podiumNextButton{display:inline-block}
+#ranking.hu-fullscreen-podium.hu-final-podium #podiumNextButton{display:none}
 </style>
 </head>
 
@@ -950,6 +962,8 @@ button:focus-visible{outline:3px solid #145e95;outline-offset:4px}
 
     <div id="rankingList">
     </div>
+
+    <button id="podiumNextButton" type="button" onclick="nextQuestion()">다음 문제 ▶</button>
 
     <button
       id="rankCloseButton"
@@ -2251,9 +2265,16 @@ window.revealAnswer = async function() {
     "none";
 
 
-  document.getElementById("rankButton")
-    .style.display =
-    (q.type === "poll" || Number(q.points) === 0) ? "none" : "inline-block";
+  document.getElementById("rankButton").style.display = "none";
+  // 정답을 3초간 보여준 뒤 강사용 전체 화면 시상대로 자동 전환.
+  if(q.type !== "poll" && Number(q.points)!==0){
+    const revealedQuestion=currentQuestion;
+    setTimeout(()=>{
+      if(quizMode==="result" && currentQuestion===revealedQuestion){
+        window.showRanking().catch(e=>console.error("시상대 표시 실패",e));
+      }
+    },3000);
+  }
 
 
   document.getElementById("nextButton")
@@ -2473,9 +2494,10 @@ window.showRanking = async function() {
   }
 
 
-  document.getElementById("ranking")
-    .style.display =
-    "block";
+  const ranking=document.getElementById("ranking");
+  ranking.classList.add("hu-fullscreen-podium");
+  ranking.classList.toggle("hu-final-podium",quizMode==="finished");
+  ranking.style.display="flex";
 
 };
 
@@ -2506,6 +2528,9 @@ window.nextQuestion = async function() {
   }
 
 
+  const ranking=document.getElementById("ranking");
+  ranking.classList.remove("hu-fullscreen-podium","hu-final-podium");
+  ranking.style.display="none";
   quizMode="preparing";
   currentQuestion++;
 
