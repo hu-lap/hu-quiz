@@ -692,6 +692,10 @@ button:focus-visible{outline:3px solid #145e95;outline-offset:4px}
 #podiumNextButton{display:none;margin:20px auto 0;padding:15px 44px;border:0;border-radius:16px;background:#f3c65a;color:#202d45;font-size:clamp(19px,2vw,27px);font-weight:850;cursor:pointer}
 #ranking.hu-fullscreen-podium #podiumNextButton{display:inline-block}
 #ranking.hu-fullscreen-podium.hu-final-podium #podiumNextButton{display:none}
+#ranking.hu-fullscreen-podium #podiumFinalButton,#ranking.hu-fullscreen-podium #podiumLobbyButton{border:0;border-radius:14px;background:#f3c65a;color:#17263c;font-size:clamp(19px,2vw,26px);font-weight:800;padding:14px 28px;margin:12px;cursor:pointer}
+#ranking.hu-fullscreen-podium.hu-final-podium #podiumLobbyButton{display:inline-block!important}
+
+#ranking.hu-fullscreen-podium:not(.hu-final-podium) #podiumFinalButton{display:none!important}
 </style>
 </head>
 
@@ -964,6 +968,9 @@ button:focus-visible{outline:3px solid #145e95;outline-offset:4px}
     </div>
 
     <button id="podiumNextButton" type="button" onclick="nextQuestion()">다음 문제 ▶</button>
+    <button id="podiumFinalButton" type="button" onclick="nextQuestion()" style="display:none">최종 결과 보기 🏆</button>
+    <button id="podiumLobbyButton" type="button" onclick="resetQuiz(true)" style="display:none">처음으로 ↩</button>
+
 
     <button
       id="rankCloseButton"
@@ -1706,6 +1713,7 @@ document.getElementById("importSetFile").onchange=async e=>{
 ============================== */
 
 let quizMode = "waiting";
+let huFinalAutoVersion=0;
 
 let currentQuestion = -1;
 
@@ -1831,12 +1839,13 @@ let resetInProgress = false;
    새 퀴즈 준비
 ============================== */
 
-window.resetQuiz = async function() {
+window.resetQuiz = async function(automatic = false) {
   if (!adminAuthenticated) { alert("관리자 로그인이 필요합니다."); return; }
   if (resetInProgress) return;
+  huFinalAutoVersion++;
 
   const participantCount = document.getElementById("participantCount").textContent;
-  const ok = confirm(
+  const ok = automatic === true || confirm(
     "⚠ 새 퀴즈를 준비하시겠습니까?\n\n" +
     "진행 중인 퀴즈가 즉시 종료되고, 참가자 " + participantCount +
     "명과 모든 답변·점수가 삭제됩니다.\n" +
@@ -1873,6 +1882,7 @@ window.resetQuiz = async function() {
     document.getElementById("questionMeta").style.display = "block";
     document.getElementById("responseArea").style.display = "block";
     document.getElementById("resultArea").style.display = "none";
+    document.getElementById("ranking").classList.remove("hu-fullscreen-podium","hu-final-podium");
     document.getElementById("ranking").style.display = "none";
     document.getElementById("startButton").style.display = "inline-block";
     document.getElementById("answerButton").style.display = "none";
@@ -1881,7 +1891,7 @@ window.resetQuiz = async function() {
     document.getElementById("managementPanel").style.display = "none";
     questions = [];
     updateSetUI();
-    alert("새 퀴즈 준비가 완료되었습니다.");
+    if(!automatic) alert("새 퀴즈 준비가 완료되었습니다.");
   } catch (error) {
     alert("초기화에 실패했습니다. 인터넷 연결과 관리자 권한을 확인해주세요.");
     console.error(error);
@@ -2103,7 +2113,7 @@ window.startQuiz = async function() {
    정답 공개
 ============================== */
 
-// 몸풀기 배경/문항만 시상대에서 제외. 0점 일반 문제는 제외하지 않는다.
+// 과거 몸풀기 판별 보조 함수 (시상대 제외는 0점 또는 투표형 기준)
 function huIsWarmupQuestion(q,index){
  const key=String(q?.backgroundKey||"");
  if(/^warmup_0[123]$/.test(key))return true;
@@ -2277,16 +2287,9 @@ window.revealAnswer = async function() {
 
 
   document.getElementById("rankButton").style.display = "none";
-  // 정답을 3초간 보여준 뒤 강사용 전체 화면 시상대로 자동 전환.
-  if(!huIsWarmupQuestion(q,currentQuestion)){
-    const revealedQuestion=currentQuestion;
-    setTimeout(()=>{
-      if(quizMode==="result" && currentQuestion===revealedQuestion){
-        window.showRanking().catch(e=>console.error("시상대 표시 실패",e));
-      }
-    },3000);
-  }
-
+  // 자동 전환하지 않는다. 강사가 다음 버튼을 눌렀을 때 시상대를 연다.
+  document.getElementById("nextButton").textContent =
+    (q.type!=="poll" && Number(q.points)>0) ? "다음 ▶ 시상대" : "다음 문제 ▶";
 
   document.getElementById("nextButton")
     .style.display =
@@ -2509,10 +2512,13 @@ window.showRanking = async function() {
   // 기존 문제 화면과 동일한 배경(이미 로드된 경로)을 시상대에 적용한다.
   const podiumQuestion=questions[Math.min(currentQuestion,questions.length-1)];
   const podiumIndex=Math.min(currentQuestion,questions.length-1);
-  const scenePath=podiumQuestion?huResolved.get(huSceneToken(podiumQuestion,podiumIndex)):"";
+  const scenePath=podiumQuestion?(huResolved.get(huSceneToken(podiumQuestion,podiumIndex)) || podiumQuestion.backgroundHost || podiumQuestion.backgroundMobile || ""):"";
   ranking.style.setProperty("--hu-podium-scene",scenePath?'url('+JSON.stringify(scenePath)+')':'linear-gradient(155deg,#0b1730,#1b3760 60%,#10243f)');
   ranking.classList.add("hu-fullscreen-podium");
   ranking.classList.toggle("hu-final-podium",quizMode==="finished");
+  document.getElementById("podiumFinalButton").style.display="none";
+  document.getElementById("podiumLobbyButton").style.display=quizMode==="finished" ? "inline-block":"none";
+  document.getElementById("podiumNextButton").textContent=currentQuestion===questions.length-1?"최종 결과 보기 ▶":"다음 문제 ▶";
   ranking.style.display="flex";
 
 };
@@ -2543,8 +2549,16 @@ window.nextQuestion = async function() {
     return;
   }
 
-
+  // 일반 유점수 문제: 첫 번째 다음 클릭은 문제별 시상대만 표시.
+  // 시상대에서 다음 클릭 시에만 실제 다음 문제(또는 최종 결과)로 진행.
   const ranking=document.getElementById("ranking");
+  const q=questions[currentQuestion];
+  if(ranking.style.display!=="flex" && q && q.type!=="poll" && Number(q.points)>0){
+    await window.showRanking();
+    document.getElementById("nextButton").style.display="none";
+    return;
+  }
+
   ranking.classList.remove("hu-fullscreen-podium","hu-final-podium");
   ranking.style.display="none";
   quizMode="preparing";
@@ -2633,8 +2647,7 @@ window.nextQuestion = async function() {
     */
 
     await window.showRanking();
-
-
+    // 최종 결과는 사용자가 '처음으로'를 누르기 전까지 유지한다.
     return;
 
   }
