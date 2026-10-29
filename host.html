@@ -696,6 +696,27 @@ button:focus-visible{outline:3px solid #145e95;outline-offset:4px}
 #ranking.hu-fullscreen-podium.hu-final-podium #podiumLobbyButton{display:inline-block!important}
 
 #ranking.hu-fullscreen-podium:not(.hu-final-podium) #podiumFinalButton{display:none!important}
+
+/* QuizN-style answer reveal, preserving the existing question background. */
+body.quiz-presenting.hu-answer-graph #options.hu-result-graph{
+ display:grid!important;grid-template-columns:repeat(var(--hu-result-cols,4),minmax(0,1fr))!important;
+ align-items:stretch;gap:clamp(8px,1.3vw,20px);width:100%;margin:8px 0 0;
+}
+body.quiz-presenting.hu-answer-graph .hu-graph-item{min-width:0;display:flex;flex-direction:column;align-items:stretch;gap:8px;position:relative}
+body.quiz-presenting.hu-answer-graph .hu-graph-people{font-size:clamp(19px,2.4vw,36px);font-weight:900;text-align:center;color:#fff;text-shadow:0 2px 7px #102b42;white-space:nowrap}
+body.quiz-presenting.hu-answer-graph .hu-graph-column{height:clamp(58px,13vh,140px);display:flex;align-items:end;border-bottom:3px solid #ffffffb8;background:#0e294326;border-radius:14px 14px 0 0;overflow:hidden}
+body.quiz-presenting.hu-answer-graph .hu-graph-fill{width:100%;background:var(--hu-bar-color);border-radius:14px 14px 0 0;opacity:.85;transition:height .35s}
+body.quiz-presenting.hu-answer-graph .hu-graph-label{position:relative;min-height:clamp(118px,20vh,215px);border-radius:17px;background:var(--hu-bar-color);padding:18px 12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;box-shadow:0 8px 22px #081e3c4a;color:white;text-align:center}
+body.quiz-presenting.hu-answer-graph .hu-graph-number{position:absolute;top:9px;right:13px;font-size:clamp(18px,2.3vw,30px);font-weight:900;color:#ffffffbc}
+body.quiz-presenting.hu-answer-graph .hu-graph-name{font-size:clamp(17px,2.3vw,31px);font-weight:850;line-height:1.28;overflow-wrap:anywhere}
+body.quiz-presenting.hu-answer-graph .hu-graph-correct .hu-graph-label{outline:5px solid #ffd06c;outline-offset:-5px}
+body.quiz-presenting.hu-answer-graph .hu-graph-check{position:absolute;top:-26px;left:8px;font-size:clamp(46px,6vw,86px);font-weight:900;color:#ffac27;line-height:1;text-shadow:0 2px 4px #1726385e}
+body.quiz-presenting.hu-answer-graph .hu-result-response-summary{grid-column:1/-1;text-align:center;color:white;font-weight:800;font-size:18px;text-shadow:0 2px 5px #12263a}
+body.quiz-presenting.hu-answer-graph #resultArea{margin:0 auto!important;padding:0!important;min-height:0!important}
+body.quiz-presenting.hu-answer-graph #responseArea{display:none!important}
+body.quiz-presenting.hu-answer-graph #timerPanel{visibility:hidden!important}
+@media(max-width:720px){body.quiz-presenting.hu-answer-graph #options.hu-result-graph{grid-template-columns:repeat(2,minmax(0,1fr))!important}body.quiz-presenting.hu-answer-graph .hu-graph-label{min-height:100px}body.quiz-presenting.hu-answer-graph .hu-graph-column{height:55px}}
+
 </style>
 </head>
 
@@ -1986,6 +2007,8 @@ async function huStartPreparedQuestion(){
   huPreloadAhead(questions,index);
   await backgroundReady;
   if(version!==huStageVersion)return false;
+  document.body.classList.remove("hu-answer-graph");
+  document.getElementById("options").classList.remove("hu-result-graph","hu-result-order");
   huApplyBackground(q,index,"hostBackgroundAnchor","hostPicture");
   await Promise.all([huPaintReady(),huDelay(startedAt-serverNow())]);
   if(version!==huStageVersion)return false;
@@ -2321,61 +2344,60 @@ function showResults(q) {
   explainToggle.style.display=q.explanation?"inline-block":"none";
   explainToggle.textContent="해설 보기";
   explainToggle.onclick=()=>{const visible=explanationBox.style.display==="block";explanationBox.style.display=visible?"none":"block";explainToggle.textContent=visible?"해설 보기":"해설 닫기";};
+  document.body.classList.add("hu-answer-graph");
   renderAnswerStatistics(q);
 }
 
 function renderAnswerStatistics(q) {
-  const optionsDiv = document.getElementById("options");
-  const isPoll = q.type === "poll";
-  let entries;
-  if (q.type === "order") {
-    const counts = new Map();
-    for (const data of currentAnswers) {
-      const key = Array.isArray(data.answer) ? data.answer.join(" → ") : String(data.answer ?? "").split(",").join(" → ");
-      counts.set(key, (counts.get(key) || 0) + 1);
+  const optionsDiv=document.getElementById("options");
+  const isPoll=q.type==="poll";
+  const isOrder=q.type==="order";
+  const isMulti=q.type==="multi";
+  const total=currentAnswers.length;
+  const palette=["#05a8ae","#20558f","#956330","#923443","#536a92","#567e63","#77529b","#8d6845"];
+  let entries=[];
+  if(isOrder){
+    const countBySequence=new Map();
+    for(const a of currentAnswers){
+      const answer=Array.isArray(a.answer)?a.answer:String(a.answer??"").split(",").map(x=>x.trim()).filter(Boolean);
+      const key=answer.join(" → ");
+      if(key)countBySequence.set(key,(countBySequence.get(key)||0)+1);
     }
-    entries = [...counts.entries()].sort((a,b)=>b[1]-a[1]);
-    if (!entries.length) entries = [["응답 없음",0]];
-    // 조합이 많을 때는 상위 4개와 기타를 합쳐 한 화면에 유지
-    if (entries.length > 4) {
-      const other = entries.slice(3).reduce((sum,item)=>sum+item[1],0);
-      entries = [...entries.slice(0,3),["기타 응답",other]];
+    entries=[...countBySequence.entries()].sort((a,b)=>b[1]-a[1]);
+    const right=Array.isArray(q.correct)?q.correct.join(" → "):String(q.correct||"");
+    if(!entries.some(e=>e[0]===right))entries.push([right,0]);
+    if(entries.length>6){
+      const kept=entries.slice(0,5),other=entries.slice(5).reduce((n,e)=>n+e[1],0);
+      entries=[...kept,["기타 응답",other]];
     }
-  } else {
-    entries = q.options.map(option => [option, currentAnswers.filter(data =>
-      q.type === "multi" ? Array.isArray(data.answer) && data.answer.includes(option) : data.answer === option
-    ).length]);
+  }else{
+    entries=(q.options||[]).map(option=>[option,currentAnswers.filter(a=>isMulti?Array.isArray(a.answer)&&a.answer.includes(option):a.answer===option).length]);
   }
-  if(q.type==="order"&&!entries.some(([text])=>text===q.correct.join(" → ")))entries.push([q.correct.join(" → "),0]);
-  const total = currentAnswers.length;
   optionsDiv.replaceChildren();
-  for (let i=0; i<entries.length; i++) {
-    const [option,count] = entries[i];
-    const percent = total ? count / total * 100 : 0;
-    const card = document.createElement("div");
-    card.className = "option stat-option";
-    const correct = !isPoll && (Array.isArray(q.correct)
-      ? q.type === "multi" ? q.correct.includes(option) : q.type === "order" ? option === q.correct.join(" → ") : false
-      : option === q.correct);
-    if (correct) card.classList.add("correct-choice");
-    const heading = document.createElement("div");
-    heading.className = "stat-heading";
-    const label = document.createElement("span");
-    label.className = "stat-label";
-    label.textContent = (q.type === "ox" || q.type === "order" ? "" : (i+1)+". ") + option + (correct ? " ✓" : "");
-    const countText = document.createElement("span");
-    countText.className = "stat-count";
-    countText.textContent = `${count}명 (${percent.toFixed(1)}%)`;
-    heading.append(label,countText);
-    const track = document.createElement("div");
-    track.className = "stat-track";
-    const fill = document.createElement("div");
-    fill.className = "stat-fill";
-    fill.style.width = `${Math.min(100,percent)}%`;
-    track.appendChild(fill);
-    card.append(heading,track);
-    optionsDiv.appendChild(card);
-  }
+  optionsDiv.classList.add("hu-result-graph");
+  optionsDiv.style.setProperty("--hu-result-cols",String(Math.min(4,Math.max(1,entries.length))));
+  optionsDiv.classList.toggle("hu-result-order",isOrder);
+  const maxCount=Math.max(1,...entries.map(e=>e[1]));
+  entries.forEach(([option,count],i)=>{
+    const correct=!isPoll&&(isOrder?option===(Array.isArray(q.correct)?q.correct.join(" → "):String(q.correct||"")):isMulti?Array.isArray(q.correct)&&q.correct.includes(option):option===q.correct);
+    const card=document.createElement("div");card.className="hu-graph-item"+(correct?" hu-graph-correct":"");
+    card.style.setProperty("--hu-bar-color",palette[i%palette.length]);
+    const people=document.createElement("div");people.className="hu-graph-people";people.textContent=count+"명";
+    const graph=document.createElement("div");graph.className="hu-graph-column";
+    const bar=document.createElement("div");bar.className="hu-graph-fill";
+    bar.style.height=(count===0?0:Math.max(9,count/maxCount*100))+"%";
+    graph.appendChild(bar);
+    const label=document.createElement("div");label.className="hu-graph-label";
+    const num=document.createElement("div");num.className="hu-graph-number";num.textContent=isOrder?"순서 "+(i+1):(q.type==="ox"?option:String(i+1));
+    const name=document.createElement("div");name.className="hu-graph-name";name.textContent=option;
+    label.append(num,name);
+    if(correct){const check=document.createElement("span");check.className="hu-graph-check";check.textContent="✓";check.setAttribute("aria-label","정답");label.appendChild(check);}
+    card.append(people,graph,label);optionsDiv.appendChild(card);
+  });
+  // 복수정답은 보기별 선택 횟수, 순서완성형은 제출된 순서별 인원으로 집계한다.
+  const summary=document.createElement("div");summary.className="hu-result-response-summary";
+  summary.textContent=isOrder?`응답 ${total}명 · 순서별 응답 현황`:isMulti?`응답 ${total}명 · 보기별 선택 현황`:`응답 ${total}명`;
+  optionsDiv.appendChild(summary);
 }
 
 
