@@ -698,7 +698,7 @@ button:focus-visible{outline:3px solid #145e95;outline-offset:4px}
 #ranking.hu-fullscreen-podium:not(.hu-final-podium) #podiumFinalButton{display:none!important}
 
 /* QuizN-style answer reveal, preserving the existing question background. */
-body.quiz-presenting.hu-answer-graph #options.hu-result-graph{
+body.quiz-presenting.hu-answer-graph #huAnswerGraphMount.hu-result-graph{
  display:grid!important;grid-template-columns:repeat(var(--hu-result-cols,4),minmax(0,1fr))!important;
  align-items:stretch;gap:clamp(8px,1.3vw,20px);width:100%;margin:8px 0 0;
 }
@@ -715,8 +715,18 @@ body.quiz-presenting.hu-answer-graph .hu-result-response-summary{grid-column:1/-
 body.quiz-presenting.hu-answer-graph #resultArea{margin:0 auto!important;padding:0!important;min-height:0!important}
 body.quiz-presenting.hu-answer-graph #responseArea{display:none!important}
 body.quiz-presenting.hu-answer-graph #timerPanel{visibility:hidden!important}
-@media(max-width:720px){body.quiz-presenting.hu-answer-graph #options.hu-result-graph{grid-template-columns:repeat(2,minmax(0,1fr))!important}body.quiz-presenting.hu-answer-graph .hu-graph-label{min-height:100px}body.quiz-presenting.hu-answer-graph .hu-graph-column{height:55px}}
+@media(max-width:720px){body.quiz-presenting.hu-answer-graph #huAnswerGraphMount.hu-result-graph{grid-template-columns:repeat(2,minmax(0,1fr))!important}body.quiz-presenting.hu-answer-graph .hu-graph-label{min-height:100px}body.quiz-presenting.hu-answer-graph .hu-graph-column{height:55px}}
 
+
+/* Answer statistics: dedicated grid, independent of the question options layout. */
+body.quiz-presenting.hu-answer-graph #questionArea #options{display:none!important}
+body.quiz-presenting.hu-answer-graph #resultArea{display:block!important;width:min(1400px,100%)!important;max-width:1400px!important;margin:8px auto!important}
+body.quiz-presenting.hu-answer-graph #huAnswerGraphMount.hu-result-graph{display:grid!important;grid-template-columns:repeat(var(--hu-result-cols,4),minmax(0,1fr))!important;gap:clamp(8px,1.5vw,20px);width:100%;align-items:end}
+body.quiz-presenting.hu-answer-graph #huAnswerGraphMount .hu-graph-item{min-width:0}
+body.quiz-presenting.hu-answer-graph #questionArea{grid-template-columns:minmax(0,1fr) auto}
+body.quiz-presenting.hu-answer-graph #timerPanel{visibility:hidden!important}
+body.quiz-presenting.hu-answer-graph #resultArea #correctAnswer{display:none!important}
+@media(max-width:720px){body.quiz-presenting.hu-answer-graph #huAnswerGraphMount.hu-result-graph{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
 </style>
 </head>
 
@@ -967,6 +977,7 @@ body.quiz-presenting.hu-answer-graph #timerPanel{visibility:hidden!important}
     </div>
 
     <button id="explanationToggle" class="secondary" type="button" style="display:none">해설 보기</button>
+     <div id="huAnswerGraphMount" aria-live="polite" style="display:none"></div>
      <div id="resultBars">
     </div>
 
@@ -2008,6 +2019,8 @@ async function huStartPreparedQuestion(){
   await backgroundReady;
   if(version!==huStageVersion)return false;
   document.body.classList.remove("hu-answer-graph");
+  document.getElementById("options").style.removeProperty("display");
+  const graphMount=document.getElementById("huAnswerGraphMount");if(graphMount){graphMount.replaceChildren();graphMount.style.display="none";}
   document.getElementById("options").classList.remove("hu-result-graph","hu-result-order");
   huApplyBackground(q,index,"hostBackgroundAnchor","hostPicture");
   await Promise.all([huPaintReady(),huDelay(startedAt-serverNow())]);
@@ -2311,12 +2324,12 @@ window.revealAnswer = async function() {
 
   document.getElementById("rankButton").style.display = "none";
   // 자동 전환하지 않는다. 강사가 다음 버튼을 눌렀을 때 시상대를 연다.
-  document.getElementById("nextButton").textContent =
-    (q.type!=="poll" && Number(q.points)>0) ? "다음" : "다음";
+  document.getElementById("nextButton").textContent = "다음";
 
   document.getElementById("nextButton")
     .style.display =
     "inline-block";
+  huNormalizeNextLabels();
 
 
   updateManagementState();
@@ -2345,11 +2358,13 @@ function showResults(q) {
   explainToggle.textContent="해설 보기";
   explainToggle.onclick=()=>{const visible=explanationBox.style.display==="block";explanationBox.style.display=visible?"none":"block";explainToggle.textContent=visible?"해설 보기":"해설 닫기";};
   document.body.classList.add("hu-answer-graph");
+  document.getElementById("options").style.display="none";
   renderAnswerStatistics(q);
 }
 
 function renderAnswerStatistics(q) {
-  const optionsDiv=document.getElementById("options");
+  const optionsDiv=document.getElementById("huAnswerGraphMount");
+  optionsDiv.style.display="grid";
   const isPoll=q.type==="poll";
   const isOrder=q.type==="order";
   const isMulti=q.type==="multi";
@@ -2556,6 +2571,15 @@ window.closeRanking = function() {
 
 };
 
+
+
+// 모든 진행 버튼의 표시는 '다음'으로 통일한다. 최종 결과/처음으로는 별도 유지.
+function huNormalizeNextLabels(){
+ for(const id of ["nextButton","rankButton","podiumNextButton"]){
+  const el=document.getElementById(id);if(!el)continue;
+  if(el.textContent.includes("시상대"))el.textContent="다음";
+ }
+}
 
 /* ==============================
    다음 문제
