@@ -967,7 +967,7 @@ button:focus-visible{outline:3px solid #145e95;outline-offset:4px}
     <div id="rankingList">
     </div>
 
-    <button id="podiumNextButton" type="button" onclick="nextQuestion()">다음 문제 ▶</button>
+    <button id="podiumNextButton" type="button" onclick="nextQuestion()">다음</button>
     <button id="podiumFinalButton" type="button" onclick="nextQuestion()" style="display:none">최종 결과 보기 🏆</button>
     <button id="podiumLobbyButton" type="button" onclick="resetQuiz(true)" style="display:none">처음으로 ↩</button>
 
@@ -1009,7 +1009,7 @@ button:focus-visible{outline:3px solid #145e95;outline-offset:4px}
       class="secondary"
       onclick="showRanking()"
       style="display:none;">
-      이번 문제 시상대 공개
+      다음
     </button>
 
     <button
@@ -2289,7 +2289,7 @@ window.revealAnswer = async function() {
   document.getElementById("rankButton").style.display = "none";
   // 자동 전환하지 않는다. 강사가 다음 버튼을 눌렀을 때 시상대를 연다.
   document.getElementById("nextButton").textContent =
-    (q.type!=="poll" && Number(q.points)>0) ? "다음 ▶ 시상대" : "다음 문제 ▶";
+    (q.type!=="poll" && Number(q.points)>0) ? "다음" : "다음";
 
   document.getElementById("nextButton")
     .style.display =
@@ -2313,11 +2313,8 @@ function showResults(q) {
   resultBars.replaceChildren(); // 별도의 세로형 통계는 사용하지 않음
   resultArea.style.display = "block";
   const isPoll = q.type === "poll";
-  const correctText = Array.isArray(q.correct)
-    ? q.correct.join(q.type === "order" ? " → " : ", ")
-    : String(q.correct ?? "");
-  answerBox.style.display = isPoll ? "none" : "block";
-  answerBox.textContent = isPoll ? "" : "정답 : " + correctText;
+  answerBox.style.display = "none";
+  answerBox.textContent = "";
   explanationBox.textContent = q.explanation || "";
   explanationBox.style.display = "none";
   const explainToggle=document.getElementById("explanationToggle");
@@ -2518,7 +2515,7 @@ window.showRanking = async function() {
   ranking.classList.toggle("hu-final-podium",quizMode==="finished");
   document.getElementById("podiumFinalButton").style.display="none";
   document.getElementById("podiumLobbyButton").style.display=quizMode==="finished" ? "inline-block":"none";
-  document.getElementById("podiumNextButton").textContent=currentQuestion===questions.length-1?"최종 결과 보기 ▶":"다음 문제 ▶";
+  document.getElementById("podiumNextButton").textContent=currentQuestion===questions.length-1?"최종 결과 보기":"다음";
   ranking.style.display="flex";
 
 };
